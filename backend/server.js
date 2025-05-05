@@ -1,6 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');          // if front‑end runs on another port
+
+const authRoute = require('./routes/auth');
+const fieldSpecRoute = require('./routes/fieldSpec');
+const dcrRoute = require('./routes/dcr');
+
 const authMw = require('./middleware/auth');
 const role = require('./middleware/roleGuard');
 
@@ -9,7 +14,12 @@ app.use(cors());
 app.use(express.json());
 
 /* public routes */
-app.use('/api', require('./routes/auth'));
+app.use('/api', authRoute);
+
+/* --- protected routes -------------------------------- */
+app.use('/api', dcrRoute);
+
+app.use('/api', fieldSpecRoute);
 
 /* --- protected routes skeleton -------------------------------- */
 app.get('/api/branches', authMw, async (req, res) => {

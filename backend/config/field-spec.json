@@ -1,0 +1,108 @@
+{
+  "RAK": [
+    {
+      "key": "date",
+      "label": "Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "purchase",
+      "label": "Purchase",
+      "type": "decimal"
+    },
+    {
+      "key": "transfer_in",
+      "label": "Transfer From Central Store",
+      "type": "decimal"
+    },
+    {
+      "key": "daily_consumption",
+      "label": "Daily Consumption",
+      "type": "decimal",
+      "required": true
+    },
+    {
+      "key": "transferred_canteen",
+      "label": "Transferred to Canteen",
+      "type": "decimal"
+    },
+    {
+      "key": "closing_stock",
+      "label": "Closing Stock",
+      "type": "decimal",
+      "required": true
+    },
+    {
+      "key": "canteen_revenue",
+      "label": "Canteen Revenue",
+      "type": "decimal"
+    },
+    {
+      "key": "mess_revenue",
+      "label": "Mess Revenue",
+      "type": "decimal"
+    },
+    {
+      "key": "aggregator_revenue",
+      "label": "Aggregator Revenue",
+      "type": "decimal"
+    }
+  ],
+  "ALN": [
+    {
+      "key": "date",
+      "label": "Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "mealdays_senior",
+      "label": "Mealdays – Senior",
+      "type": "integer",
+      "required": true
+    },
+    {
+      "key": "mealdays_junior",
+      "label": "Mealdays – Junior",
+      "type": "integer",
+      "required": true
+    },
+    {
+      "key": "mealdays_labour",
+      "label": "Mealdays – Labour",
+      "type": "integer",
+      "required": true
+    },
+    {
+      "key": "western_breakfast",
+      "label": "Western – Breakfast",
+      "type": "integer"
+    },
+    {
+      "key": "western_lunch",
+      "label": "Western – Lunch",
+      "type": "integer"
+    },
+    {
+      "key": "western_dinner",
+      "label": "Western – Dinner",
+      "type": "integer"
+    },
+    {
+      "key": "pax_abre_breakfast",
+      "label": "Pax – ABRE – Labours – Breakfast",
+      "type": "integer"
+    },
+    {
+      "key": "pax_abre_lunch",
+      "label": "Pax – ABRE – Labours – Lunch",
+      "type": "integer"
+    },
+    {
+      "key": "pax_abre_dinner",
+      "label": "Pax – ABRE – Labours – Dinner",
+      "type": "integer"
+    }
+  ]
+}
