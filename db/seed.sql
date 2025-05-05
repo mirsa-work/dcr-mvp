@@ -6,6 +6,6 @@ INSERT INTO branches (code, name) VALUES
 
 /* users (password = "pass" hashed with bcrypt) */
 INSERT INTO users (username, password, role, branch_id) VALUES
-  ('rak_user',  '$2b$10$9zY23TUx3LjRcDFEag9SseSnERbtfaz8E0H2PbQmKEzFJZ3y8SjwW', 'BRANCH', 1),
-  ('viewer',    '$2b$10$9zY23TUx3LjRcDFEag9SseSnERbtfaz8E0H2PbQmKEzFJZ3y8SjwW', 'VIEWER', NULL),
-  ('admin',     '$2b$10$9zY23TUx3LjRcDFEag9SseSnERbtfaz8E0H2PbQmKEzFJZ3y8SjwW', 'ADMIN',  NULL);
+  ('rak_user',  '$2b$10$amhzyKTicDn9U.lPepyn3.b0nLBTayHY4l2KYGW9CRNo1MkcXlqeC', 'BRANCH', 1),
+  ('viewer',    '$2b$10$amhzyKTicDn9U.lPepyn3.b0nLBTayHY4l2KYGW9CRNo1MkcXlqeC', 'VIEWER', NULL),
+  ('admin',     '$2b$10$amhzyKTicDn9U.lPepyn3.b0nLBTayHY4l2KYGW9CRNo1MkcXlqeC', 'ADMIN',  NULL);

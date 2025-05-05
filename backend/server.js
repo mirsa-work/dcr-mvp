@@ -1,29 +1,29 @@
 require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2/promise');
+const cors = require('cors');          // if front‑end runs on another port
+const authMw = require('./middleware/auth');
+const role = require('./middleware/roleGuard');
 
-const app  = express();
+const app = express();
+app.use(cors());
 app.use(express.json());
 
-/* simple connection pool */
-const pool = mysql.createPool({
-  host     : process.env.DB_HOST,
-  user     : process.env.DB_USER,
-  password : process.env.DB_PASS,
-  database : process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 4
+/* public routes */
+app.use('/api', require('./routes/auth'));
+
+/* --- protected routes skeleton -------------------------------- */
+app.get('/api/branches', authMw, async (req, res) => {
+  /* simple placeholder so you can test the guards */
+  res.json({ msg: 'You are authenticated', user: req.user });
 });
 
-/* health‑check route */
-app.get('/health', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT 1 AS ok');
-    res.json({ ok: rows[0].ok });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+/* example: only ADMINs reach this */
+app.get('/api/admin-test', authMw, role('ADMIN'), (req, res) => {
+  res.json({ secret: '42' });
 });
+
+/* health */
+app.get('/health', (_, res) => res.json({ ok: 1 }));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`API listening on ${PORT}`));
+app.listen(PORT, () => console.log('API on', PORT));
