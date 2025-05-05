@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  api:
+    build: ./backend
+    container_name: dcr_api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=db
+      - DB_USER=dcruser
+      - DB_PASS=dcrpass
+      - DB_NAME=dcrdb
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/usr/src/app # live code reload
+
+  db:
+    image: mysql:8.3
+    container_name: dcr_db
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: dcrdb
+      MYSQL_USER: dcruser
+      MYSQL_PASSWORD: dcrpass
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+
+volumes:
+  db_data:
