@@ -27,3 +27,4 @@ Thumbs.db
 # Optional: compiled output you don’t want
 backend/dist/
 frontend/dist/
+db/data/*
