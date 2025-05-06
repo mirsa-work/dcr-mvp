@@ -5,6 +5,7 @@ const cors = require('cors');          // if front‑end runs on another port
 const authRoute = require('./routes/auth');
 const fieldSpecRoute = require('./routes/fieldSpec');
 const dcrRoute = require('./routes/dcr');
+const wfRoute = require('./routes/dcrWorkflow');
 
 const authMw = require('./middleware/auth');
 const role = require('./middleware/roleGuard');
@@ -19,6 +20,7 @@ app.use('/api', authRoute);
 
 /* --- protected routes -------------------------------- */
 app.use('/api', dcrRoute);
+app.use('/api', wfRoute);
 
 app.use('/api', fieldSpecRoute);
 

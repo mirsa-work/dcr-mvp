@@ -34,29 +34,77 @@
     </div>
 
     <script>
-        let token = '';
+        let token = '', role = '', branchId = 1;
 
         $('#loginBtn').on('click', () => {
             $.post('/api/login', { username: $('#user').val(), password: $('#pass').val() })
-                .done(r => { token = r.token; $('#loginBox').hide(); $('#mainBox').show(); load(); })
+                .done(r => {
+                    token = r.token;
+                    role = r.user.role;
+                    branchId = r.user.branch_id || 1;
+                    $('#loginBox').hide(); $('#mainBox').show();
+                    load();
+                })
                 .fail(x => $('#err').text(x.responseJSON?.error || 'fail'));
         });
 
+        function authHeaders() { return { Authorization: `Bearer ${token}` } }
+
         function load() {
-            $.ajax({ url: '/api/branches/1/dcr', headers: { Authorization: `Bearer ${token}` } })
+            $.ajax({ url: `/api/branches/${branchId}/dcr`, headers: authHeaders() })
                 .done(rows => {
-                    const body = rows.map(r => `<tr><td>${r.dcr_date}</td><td>${r.dcr_number}</td><td>${r.status}</td></tr>`).join('');
+                    const body = rows.map(r => {
+                        const btns = actionButtons(r);
+                        const rr = r.reject_reason ? `<br><small class="text-danger">${r.reject_reason}</small>` : '';
+                        return `<tr>
+                  <td>${r.dcr_date}</td>
+                  <td>${r.dcr_number}</td>
+                  <td>${r.status}${rr}</td>
+                  <td>${btns}</td>
+                </tr>`;
+                    }).join('');
                     $('#tbl tbody').html(body);
                 });
         }
-        $('#refresh').on('click', load);
 
-        $('#newBtn').on('click', () => {
-            const sample = { date: new Date().toISOString().slice(0, 10), purchase: 10, daily_consumption: 5, closing_stock: 5 };
-            $.ajax({ method: 'POST', url: '/api/branches/1/dcr', headers: { Authorization: `Bearer ${token}` }, data: JSON.stringify(sample), contentType: 'application/json' })
-                .done(() => { alert('Saved'); load(); })
-                .fail(x => alert(JSON.stringify(x.responseJSON)));
+        function actionButtons(r) {
+            if (role === 'BRANCH') {
+                if (['DRAFT', 'REJECTED'].includes(r.status))
+                    return `<button data-id="${r.id}" class="btn btn-sm btn-warning submit">Submit</button>`;
+                return '';
+            }
+            if (role === 'ADMIN') {
+                if (r.status === 'SUBMITTED')
+                    return `<button data-id="${r.id}" class="btn btn-sm btn-success accept">Accept</button>
+                      <button data-id="${r.id}" class="btn btn-sm btn-danger reject">Reject</button>`;
+                if (r.status === 'ACCEPTED')
+                    return `<button data-id="${r.id}" class="btn btn-sm btn-secondary reopen">Re‑open</button>`;
+            }
+            return '';
+        }
+
+        $('#tbl').on('click', '.submit', e => wf('submit', e));
+        $('#tbl').on('click', '.accept', e => wf('accept', e));
+        $('#tbl').on('click', '.reject', e => {
+            const reason = prompt('Reject reason?');
+            if (reason) wf('reject', e, { reason });
         });
+        $('#tbl').on('click', '.reopen', e => wf('reopen', e));
+
+        function wf(action, e, data = {}) {
+            const id = $(e.target).data('id');
+            $.ajax({
+                method: 'POST',
+                url: `/api/dcr/${id}/${action}`,
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                data: JSON.stringify(data)
+            })
+                .done(() => load())
+                .fail(x => alert(JSON.stringify(x.responseJSON)));
+        }
+
+        $('#refresh').on('click', load);
+        $('#newBtn').on('click', () => alert('Form builder coming Day‑5 😉'));
     </script>
 </body>
 
