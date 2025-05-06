@@ -12,6 +12,7 @@ const role = require('./middleware/roleGuard');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 /* public routes */
 app.use('/api', authRoute);
