@@ -27,6 +27,8 @@ CREATE TABLE dcr_header (
   FOREIGN KEY (branch_id) REFERENCES branches(id)
 );
 
+ALTER TABLE dcr_header ADD UNIQUE KEY uniq_branch_date (branch_id, dcr_date);
+
 CREATE TABLE dcr_values (
   id INT AUTO_INCREMENT PRIMARY KEY,
   dcr_id INT NOT NULL,
