@@ -9,6 +9,16 @@ const fieldSpec = require('../config/field-spec.json');
 
 const router = express.Router();
 
+/* helper: fetch header + branch / status checks */
+async function loadHeader(conn, dcrId) {
+    const [[h]] = await conn.query(
+        `SELECT dh.*, b.code AS branch_code
+         FROM dcr_header dh
+         JOIN branches b ON b.id = dh.branch_id
+        WHERE dh.id=?`, [dcrId]);
+    return h;      // undefined if not found
+}
+
 /* -------------------------------------------------------
  *  LIST  (GET /api/branches/:branchId/dcr?month=yyyy-mm)
  * ------------------------------------------------------- */
@@ -64,13 +74,15 @@ router.post(
         for (const f of spec) {
             const v = body[f.key];
 
-            if (f.required && (v === undefined || v === null || v === ''))
+            const isEmpty = v === undefined || v === null || v === '';
+
+            if (f.required && isEmpty)
                 errors.push(`${f.label} required`);
 
-            if (f.type === 'decimal' && v !== undefined && !/^\d+(\.\d{1,2})?$/.test(String(v)))
+            if (f.type === 'decimal' && !isEmpty && !/^\d+(\.\d{1,2})?$/.test(String(v)))
                 errors.push(`${f.label} max 2 decimals`);
 
-            if (f.type === 'integer' && v !== undefined && !/^\d+$/.test(String(v)))
+            if (f.type === 'integer' && !isEmpty && !/^\d+$/.test(String(v)))
                 errors.push(`${f.label} must be whole number`);
         }
         if (errors.length) return res.status(422).json({ errors });
@@ -79,6 +91,15 @@ router.post(
         const conn = await db.getConnection();
         try {
             await conn.beginTransaction();
+
+            /* duplicate‑per‑day guard */
+            const [[dup]] = await conn.query(
+                'SELECT id FROM dcr_header WHERE branch_id=? AND dcr_date=?',
+                [branchId, body.date]
+            );
+            if (dup) {
+                return res.status(409).json({ error: 'A DCR already exists for this date' });
+            }
 
             /* 4.1 insert header */
             const dcrNo = makeNo(branchCode, body.date);
@@ -123,7 +144,7 @@ router.put('/dcr/:id', auth, async (req, res) => {
 
     /* fetch header */
     const [[h]] = await db.query(
-        'SELECT branch_id,status FROM dcr_header WHERE id=?',
+        'SELECT branch_id,dcr_number,dcr_date,status FROM dcr_header WHERE id=?',
         [dcrId]
     );
     if (!h) return res.status(404).json({ error: 'Not found' });
@@ -142,24 +163,48 @@ router.put('/dcr/:id', auth, async (req, res) => {
     const errs = [];
     for (const f of spec) {
         const v = body[f.key];
-        if (f.required && (v === undefined || v === null || v === ''))
+
+        const isEmpty = v === undefined || v === null || v === '';
+
+        if (f.required && isEmpty)
             errs.push(`${f.label} required`);
-        if (f.type === 'decimal' && v !== undefined && !/^\d+(\.\d{1,2})?$/.test(String(v)))
+        if (f.type === 'decimal' && !isEmpty && !/^\d+(\.\d{1,2})?$/.test(String(v)))
             errs.push(`${f.label} max 2 decimals`);
-        if (f.type === 'integer' && v !== undefined && !/^\d+$/.test(String(v)))
+        if (f.type === 'integer' && !isEmpty && !/^\d+$/.test(String(v)))
             errs.push(`${f.label} must be whole number`);
     }
     if (errs.length) return res.status(422).json({ errors: errs });
+
+    // if date changed → regenerate dcr_number
+    let newDcrNo = h.dcr_number;
+    if (body.date !== h.dcr_date.toISOString().slice(0, 10)) {
+        newDcrNo = makeNo(b.code, body.date);   // makeNo(branchCode, yyyy-mm-dd)
+    }
 
     /* transaction */
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
+        /*  check duplicate date, ignoring this row itself  */
+        const [[dup]] = await conn.query(
+            `SELECT id FROM dcr_header
+           WHERE branch_id = ?
+             AND dcr_date  = ?
+             AND id <> ?`,
+            [h.branch_id, body.date, dcrId]
+        );
+        if (dup) {
+            return res.status(409).json({ error: 'Another DCR already exists for this date' });
+        }
+
         /* 1. update header timestamp */
         await conn.query(
-            'UPDATE dcr_header SET updated_by=?, updated_at=NOW() WHERE id=?',
-            [req.user.id, dcrId]
+            `UPDATE dcr_header
+                SET updated_by=?, updated_at=NOW(),
+                    dcr_date=?, dcr_number=?
+              WHERE id=?`,
+            [req.user.id, body.date, newDcrNo, dcrId]
         );
 
         /* 2. replace values (simplest) */
@@ -184,8 +229,86 @@ router.put('/dcr/:id', auth, async (req, res) => {
     }
 });
 
+router.post('/dcr/:id/submit', auth, async (req, res) => {
+    const dcrId = +req.params.id;
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+        const h = await loadHeader(conn, dcrId);
+        if (!h) return res.status(404).json({ error: 'Not found' });
+
+        /* permission */
+        if (req.user.role === 'BRANCH' && req.user.id !== h.created_by)
+            return res.status(403).json({ error: 'Forbidden' });
+        if (!['DRAFT', 'REJECTED'].includes(h.status))
+            return res.status(400).json({ error: 'Already submitted' });
+
+        await conn.query(
+            `UPDATE dcr_header SET status='SUBMITTED', updated_by=? WHERE id=?`,
+            [req.user.id, dcrId]
+        );
+        await conn.commit();
+        res.json({ status: 'SUBMITTED' });
+    } catch (e) { await conn.rollback(); res.status(500).json({ error: 'fail' }); }
+    finally { conn.release(); }
+});
+
+router.post('/dcr/:id/accept', auth, role('ADMIN'), async (req, res) => {
+    const dcrId = +req.params.id;
+    await db.query(
+        `UPDATE dcr_header
+          SET status='ACCEPTED', reject_reason=NULL, updated_by=? 
+        WHERE id=? AND status='SUBMITTED'`,
+        [req.user.id, dcrId]
+    );
+    res.json({ status: 'ACCEPTED' });
+});
+
+router.post('/dcr/:id/reject', auth, role('ADMIN'), async (req, res) => {
+    const { reason } = req.body;          // expect { reason:"…" }
+    const dcrId = +req.params.id;
+    await db.query(
+        `UPDATE dcr_header
+          SET status='REJECTED', reject_reason=?, updated_by=?
+        WHERE id=? AND status IN ('SUBMITTED','ACCEPTED')`,
+        [reason || null, req.user.id, dcrId]
+    );
+    res.json({ status: 'REJECTED' });
+});
+
+router.post('/dcr/:id/reopen', auth, role('ADMIN'), async (req, res) => {
+    const dcrId = +req.params.id;
+    await db.query(
+        `UPDATE dcr_header SET status='REJECTED', updated_by=? WHERE id=? AND status='ACCEPTED'`,
+        [req.user.id, dcrId]
+    );
+    res.json({ status: 'REJECTED' });
+});
+
 /* -------------------------------------------------------
- *  TODO: submit / accept / reject / reopen  (Day 4)
+ *  GET one DCR  (used for Edit modal)
  * ------------------------------------------------------- */
+router.get('/dcr/:id', auth, async (req, res) => {
+    const dcrId = +req.params.id;
+
+    /* 1. header with branch check */
+    const [[h]] = await db.query(
+        `SELECT id, branch_id, status, dcr_date
+         FROM dcr_header WHERE id = ?`, [dcrId]);
+    if (!h) return res.status(404).json({ error: 'Not found' });
+
+    if (req.user.role === 'BRANCH' && req.user.bid !== h.branch_id)
+        return res.status(403).json({ error: 'Forbidden' });
+
+    /* 2. values */
+    const [vals] = await db.query(
+        'SELECT field_key, value_text FROM dcr_values WHERE dcr_id = ?',
+        [dcrId]
+    );
+
+    const obj = Object.fromEntries(vals.map(v => [v.field_key, v.value_text]));
+    obj.date = h.dcr_date;          // include date for the date input
+    res.json(obj);
+});
 
 module.exports = router;
