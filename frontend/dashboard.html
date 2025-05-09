@@ -5,12 +5,25 @@
     <meta charset="UTF-8" />
     <title>DCR Dashboard</title>
 
-    <!-- Bootstrap & jQuery CDN -->
+    <!-- ─── CSS / JS libs ──────────────────────────────── -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- icons -->
+    <link href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
+    <!-- ─── Quick styles ───────────────────────────────── -->
     <style>
+        :root {
+            --sidebar-w: 220px;
+        }
+
+        body {
+            font-size: 0.825rem;
+        }
+
         .badge-DRAFT {
             background: #6c757d
         }
@@ -26,13 +39,49 @@
         .badge-ACCEPTED {
             background: #198754
         }
+
+        #loginBox {
+            margin-top: 15vh;
+        }
+
+        #sideBar {
+            width: var(--sidebar-w);
+        }
+
+        @media (max-width: 767.98px) {
+            #sideBar {
+                position: fixed;
+                left: -var(--sidebar-w);
+                top: 0;
+                height: 100vh;
+                transition: left .2s;
+                z-index: 1040;
+            }
+
+            #sideBar.open {
+                left: 0;
+            }
+        }
+
+        .action {
+            margin-right: .4rem;
+            font-size: 1rem;
+        }
+
+        .action:last-child {
+            margin-right: 0;
+        }
     </style>
 </head>
 
-<body class="p-3">
-
-    <!-- ─────────────── Login box ─────────────── -->
-    <div id="loginBox" class="w-25 mx-auto">
+<body class="d-flex min-vh-100">
+    <!-- ── Login box ───────────────────────────── -->
+    <div id="loginBox" class="w-25 mx-auto d-none">
+        <h5 class="mb-4">
+            <!-- placeholder logo -->
+            <span class="me-1 bi bi-stack" style="font-size:1.3rem"></span>
+            Southern Slice
+        </h5>
         <h4 class="mb-3">Login</h4>
         <input id="user" class="form-control mb-2" placeholder="Username">
         <input id="pass" type="password" class="form-control mb-2" placeholder="Password">
@@ -40,199 +89,286 @@
         <div id="err" class="text-danger mt-2"></div>
     </div>
 
-    <!-- ─────────────── Main UI ─────────────── -->
-    <div id="mainBox" style="display:none;">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <select id="branchSel" class="form-select d-inline w-auto"></select>
-                <input id="monthSel" type="month" class="form-control d-inline w-auto ms-1">
-                <button id="refresh" class="btn btn-outline-secondary btn-sm ms-1">Refresh</button>
-            </div>
-            <button id="newBtn" class="btn btn-success btn-sm">New DCR</button>
+    <div id="appShell" class="d-flex flex-grow-1 d-none">
+        <!-- ╭─ Sidebar ───────────────────────────────────────-->
+        <nav id="sideBar" class="bg-light border-end p-3">
+            <h5 class="mb-4">
+                <!-- placeholder logo -->
+                <span class="me-1 bi bi-stack" style="font-size:1.3rem"></span>
+                Southern Slice
+            </h5>
+            <ul class="nav flex-column">
+                <li class="nav-item"><a class="nav-link active" href="#">Daily Reports</a></li>
+                <li class="nav-item"><a class="nav-link disabled" href="#">(Future) Reports</a></li>
+            </ul>
+        </nav>
+
+        <!-- ╭─ Main column ───────────────────────────────────-->
+        <div class="flex-grow-1 d-flex flex-column">
+
+            <!-- Header -->
+            <header class="d-flex justify-content-between align-items-center border-bottom p-2">
+                <div class="d-flex align-items-center">
+                    <button id="toggleSide" class="btn btn-sm btn-outline-secondary d-md-none me-2">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h6 class="m-0">Daily Consumption Reports</h6>
+                </div>
+                <div class="dropdown">
+                    <button id="userMenu" class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" id="logoutLink" href="#">Logout</a></li>
+                    </ul>
+                </div>
+            </header>
+
+            <!-- Main content -->
+            <main class="flex-grow-1 p-3">
+
+                <!-- ── Dashboard ───────────────────────────── -->
+                <div id="dashBox" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+
+                        <div class="d-flex align-items-start flex-wrap gap-2">
+                            <select id="branchSel" class="form-select w-auto"></select>
+
+                            <input id="monthSel" type="month" class="form-control d-inline w-auto ms-1">
+
+                            <button id="refreshBtn" class="btn btn-outline-secondary btn-sm" title="Refresh">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+
+                        <button id="newBtn" class="btn btn-success btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i> New DCR
+                        </button>
+                    </div>
+
+                    <table class="table table-sm" id="tbl">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>DCR #</th>
+                                <th>Status</th>
+                                <th style="width:110px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </main>
         </div>
 
-        <table class="table table-sm" id="tbl">
-            <thead class="table-light">
-                <tr>
-                    <th>Date</th>
-                    <th>DCR #</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <!-- ─────────────── Modal ─────────────── -->
-    <div class="modal fade" id="dcrModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="dcrForm" class="row g-3"></form>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button id="saveDcr" class="btn btn-primary">Save</button>
+        <!-- ─── DCR modal ─────────────────────────────────── -->
+        <div class="modal fade" id="dcrModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle"></h5>
+                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="dcrForm" class="row g-3"></form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button id="saveDcr" class="btn btn-primary">Save</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
+        <!-- ─── Toast box ─────────────────────────────────── -->
+        <div id="toastBox" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+    </div>
+    <!-- ╭─ Application code (namespaced) ────────────────-->
     <script>
-        /* ---------- CONFIG ---------- */
-        const API = '';                // empty = same origin (via Nginx proxy)
+        (function (window, $) {
 
-        /* ---------- Globals ---------- */
-        let token = '', user = {}, SPEC = {};
-        let editId = null;                // null = new, otherwise numeric id
+            const DCR = { API: '', token: '', user: {}, SPEC: {}, editId: null, dt: null };
 
-        /* ---------- Login ---------- */
-        $('#loginBtn').on('click', () => login());
-        function login() {
-            $.ajax({
-                method: 'POST', url: `${API}/api/login`,
-                contentType: 'application/json',
-                data: JSON.stringify({ username: $('#user').val(), password: $('#pass').val() })
-            })
-                .done(r => {
-                    token = r.token; user = r.user;
-                    $.ajax({ url: `${API}/api/field-spec`, headers: { Authorization: `Bearer ${token}` } })
-                        .done(s => { SPEC = s; initUI(); });
+            /* ---------- UI helpers ---------- */
+            DCR.toast = (msg, type = 'success') => {
+                const id = 't' + Date.now();
+                $('#toastBox').append(`
+   <div id="${id}" class="toast bg-${type === 'success' ? 'success' : 'danger'} text-white">
+     <div class="toast-body">${msg}</div></div>`);
+                $('#' + id).toast({ delay: 3000 }).toast('show')
+                    .on('hidden.bs.toast', function () { $(this).remove(); });
+            };
+
+            DCR.niceDate = iso => {
+                const d = new Date(iso); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            };
+
+            /* ---------- Auth helpers ---------- */
+            DCR.setToken = t => { DCR.token = t; sessionStorage.setItem('jwt', t); };
+            DCR.setUser = u => { DCR.user = u; sessionStorage.setItem('user', JSON.stringify(u)); };
+            DCR.loadStoredUser = () => {
+                const raw = sessionStorage.getItem('user'); if (raw) try { DCR.user = JSON.parse(raw); } catch (e) { }
+            };
+            DCR.clearCreds = () => { DCR.token = ''; DCR.user = {}; sessionStorage.clear(); };
+
+            /* ---------- Login ---------- */
+            $('#loginBtn').on('click', () => DCR.login());
+            DCR.login = () => {
+                $.ajax({
+                    method: 'POST', url: `${DCR.API}/api/login`, contentType: 'application/json',
+                    data: JSON.stringify({ username: $('#user').val(), password: $('#pass').val() })
                 })
-                .fail(x => $('#err').text(x.responseJSON?.error || 'Login failed'));
-        }
+                    .done(r => {
+                        DCR.setToken(r.token); DCR.setUser(r.user);
+                        DCR.bootstrapData();         // load spec & branches
+                    })
+                    .fail(x => $('#err').text(x.responseJSON?.error || 'Login failed'));
+            };
 
-        /* ---------- Initialise after login ---------- */
-        function initUI() {
-            $('#loginBox').hide(); $('#mainBox').show();
-            buildBranchSel();
-        }
+            /* ---------- Initial data ---------- */
+            DCR.bootstrapData = () => {
+                $.when(
+                    $.ajax({ url: `${DCR.API}/api/field-spec`, headers: { Authorization: `Bearer ${DCR.token}` } }),
+                    $.ajax({ url: `${DCR.API}/api/branches`, headers: { Authorization: `Bearer ${DCR.token}` } })
+                ).done(([spec], [branches]) => {
+                    DCR.SPEC = spec; DCR.initUI(branches);
+                }).fail(() => { DCR.clearCreds(); $('#loginBox').removeClass('d-none'); });
+            };
 
-        /* ---------- Branch dropdown ---------- */
-        function buildBranchSel() {
-            $.ajax({ url: `${API}/api/branches`, headers: { Authorization: `Bearer ${token}` } })
-                .done(list => {
-                    const sel = $('#branchSel').empty();
-                    list.forEach(b => sel.append(`<option value="${b.id}" data-code="${b.code}">${b.name}</option>`));
-                    $('#monthSel').val(new Date().toISOString().slice(0, 7));
-                    loadTable();
+            /* ---------- UI init ---------- */
+            DCR.initUI = branches => {
+                $('#loginBox').addClass('d-none');
+                $('#appShell').removeClass('d-none');
+                $('#dashBox').show();
+
+                if (DCR.user.role !== 'BRANCH') $('#newBtn').addClass('d-none');
+
+                const sel = $('#branchSel').empty();
+                branches.forEach(b => sel.append(`<option value="${b.id}" data-code="${b.code}">${b.name}</option>`));
+                $('#monthSel').val(new Date().toISOString().slice(0, 7));
+                DCR.loadTable();
+            };
+
+            /* ---------- Table logic ---------- */
+            DCR.loadTable = () => {
+                const bid = $('#branchSel').val(), m = $('#monthSel').val();
+                $.ajax({ url: `${DCR.API}/api/branches/${bid}/dcr?month=${m}`, headers: { Authorization: `Bearer ${DCR.token}` } })
+                    .done(rows => {
+                        if (DCR.dt) { DCR.dt.destroy(); DCR.dt = null; }
+                        $('#tbl tbody').html(rows.map(r => DCR.renderRow(r)).join(''));
+                        DCR.dt = new DataTable('#tbl', { pageLength: 10, order: [[0, 'desc']] });
+                    });
+            };
+            DCR.renderRow = r => {
+                return `<tr data-id="${r.id}">
+    <td>${DCR.niceDate(r.dcr_date)}</td>
+    <td>${r.dcr_number}</td>
+    <td><span class="badge badge-${r.status}">${r.status}</span></td>
+    <td>${DCR.rowActions(r)}</td></tr>`;
+            };
+            // buttons swapped for icons
+            DCR.icon = (name, act, title) => `<i class="bi bi-${name} action" data-act="${act}" title="${title}" style="cursor:pointer"></i>`;
+            DCR.rowActions = r => {
+                const isB = DCR.user.role === 'BRANCH', isA = DCR.user.role === 'ADMIN';
+                let a = '';
+                if (['DRAFT', 'REJECTED'].includes(r.status) && isB)
+                    a += DCR.icon('pencil', 'edit', 'Edit') + DCR.icon('arrow-up-circle', 'submit', 'Submit');
+                if (r.status === 'SUBMITTED' && isA)
+                    a += DCR.icon('check-circle', 'accept', 'Accept') + DCR.icon('x-circle', 'reject', 'Reject');
+                if (r.status === 'ACCEPTED' && isA)
+                    a += DCR.icon('arrow-counterclockwise', 'reopen', 'Re‑open');
+                return a || '—';
+            };
+
+            /* ---------- Row action handlers ---------- */
+            $('#tbl').on('click', '.action', function () {
+                const id = $(this).closest('tr').data('id'), act = $(this).data('act');
+                const cb = () => { DCR.toast(act.charAt(0).toUpperCase() + act.slice(1)); DCR.loadTable(); };
+                if (act === 'edit') DCR.openModal(id);
+                else if (act === 'submit') DCR.call(`/api/dcr/${id}/submit`, 'POST', cb);
+                else if (act === 'accept') DCR.call(`/api/dcr/${id}/accept`, 'POST', cb);
+                else if (act === 'reject') { const r = prompt('Reject reason?'); if (r !== null) DCR.call(`/api/dcr/${id}/reject`, 'POST', cb, { reason: r }); }
+                else if (act === 'reopen') DCR.call(`/api/dcr/${id}/reopen`, 'POST', cb);
+            });
+
+            /* ---------- New/Edit modal ---------- */
+            $('#newBtn').on('click', () => DCR.openModal(null));
+            DCR.openModal = id => {
+                DCR.editId = id;
+                const bcode = $('#branchSel option:selected').data('code');
+                let specRaw = DCR.SPEC[bcode];
+                if (!specRaw) { DCR.toast('No form spec for branch', 'danger'); return; }
+                const groups = specRaw.groups ? specRaw.groups
+                    : [{ label: '', fields: Array.isArray(specRaw) ? specRaw : specRaw.fields || [] }];
+                $('#modalTitle').text(id ? 'Edit DCR' : 'Daily Consumption Report');
+                const f = $('#dcrForm').empty();
+                groups.forEach(g => {
+                    if (g.label) f.append(`<h6 class="mt-3">${g.label}</h6><hr class="mt-0 mb-2">`);
+                    g.fields.forEach(s => {
+                        const step = s.type === 'decimal' ? '.01' : '1', typ = s.type === 'date' ? 'date' : 'number';
+                        f.append(`<div class="col-md-4">
+          <label class="form-label">${s.label}${s.required ? '*' : ''}</label>
+          <input class="form-control" type="${typ}" step="${step}" name="${s.key}" ${s.required ? 'required' : ''}>
+       </div>`);
+                    });
                 });
-        }
-
-        /* ---------- Load table ---------- */
-        function loadTable() {
-            const bid = $('#branchSel').val();
-            const month = $('#monthSel').val();
-            $.ajax({
-                url: `${API}/api/branches/${bid}/dcr?month=${month}`,
-                headers: { Authorization: `Bearer ${token}` }
-            }).done(rows => {
-                const body = rows.map(row => renderRow(row)).join('');
-                $('#tbl tbody').html(body);
-            });
-        }
-        $('#refresh').on('click', loadTable);
-        $('#branchSel,#monthSel').on('change', loadTable);
-
-        /* ---------- Render row ---------- */
-        function renderRow(r) {
-            const badge = `<span class="badge badge-${r.status}">${r.status}</span>`;
-            const acts = rowActions(r);
-            return `<tr data-id="${r.id}">
-            <td>${r.dcr_date}</td><td>${r.dcr_number}</td><td>${badge}</td><td>${acts}</td>
-          </tr>`;
-        }
-        function rowActions(r) {
-            let a = '';
-            const isBranch = (user.role === 'BRANCH');
-            const isAdmin = (user.role === 'ADMIN');
-            if (['DRAFT', 'REJECTED'].includes(r.status) && isBranch) {
-                a += btn('edit', 'primary');
-                a += btn('submit', 'success');
-            }
-            if (r.status === 'SUBMITTED' && isAdmin) {
-                a += btn('accept', 'success') + btn('reject', 'danger');
-            }
-            if (r.status === 'ACCEPTED' && isAdmin) {
-                a += btn('reopen', 'warning');
-            }
-            if (a === '') a = '—';
-            return a;
-        }
-        function btn(action, cls) { return `<button class="btn btn-${cls} btn-sm action" data-act="${action}">${action}</button>`; }
-
-        /* ---------- Row action handlers ---------- */
-        $('#tbl').on('click', '.action', function () {
-            const id = $(this).closest('tr').data('id');
-            const act = $(this).data('act');
-            if (act === 'edit') openModal(id);
-            else if (act === 'submit') call(`/api/dcr/${id}/submit`, 'POST', loadTable);
-            else if (act === 'accept') call(`/api/dcr/${id}/accept`, 'POST', loadTable);
-            else if (act === 'reject') {
-                const reason = prompt('Reject reason?');
-                if (reason !== null) call(`/api/dcr/${id}/reject`, 'POST', loadTable, { reason });
-            }
-            else if (act === 'reopen') call(`/api/dcr/${id}/reopen`, 'POST', loadTable);
-        });
-
-        /* ---------- New / Edit modal ---------- */
-        $('#newBtn').on('click', () => openModal(null));
-        function openModal(id) {
-            editId = id;
-            const bid = $('#branchSel').val();
-            const bcode = $('#branchSel option:selected').data('code');
-            const spec = SPEC[bcode] || [];
-            $('#modalTitle').text(id ? 'Edit DCR' : 'Daily Consumption Report');
-
-            const form = $('#dcrForm').empty();
-            spec.forEach(f => {
-                const step = (f.type === 'decimal') ? '.01' : '1';
-                const typ = (f.type === 'date') ? 'date' : 'number';
-                const req = (f.required) ? 'required' : '';
-                form.append(`<div class="col-md-4">
-       <label class="form-label">${f.label}${f.required ? '*' : ''}</label>
-       <input class="form-control" type="${typ}" step="${step}" name="${f.key}" ${req}>
-    </div>`);
+                if (id) $.ajax({ url: `${DCR.API}/api/dcr/${id}`, headers: { Authorization: `Bearer ${DCR.token}` } })
+                    .done(DCR.populateForm);
+                $('#dcrModal').modal('show');
+            };
+            DCR.populateForm = data => {
+                for (const [k, v] of Object.entries(data))
+                    $('#dcrForm [name="' + k + '"]').val(k === 'date' ? String(v).slice(0, 10) : v);
+            };
+            /* save */
+            $('#saveDcr').on('click', e => {
+                e.preventDefault();
+                if (!document.querySelector('#dcrForm').reportValidity()) return;
+                const bid = $('#branchSel').val(),
+                    obj = Object.fromEntries($('#dcrForm').serializeArray().map(p => [p.name, p.value])),
+                    url = DCR.editId ? `/api/dcr/${DCR.editId}` : `/api/branches/${bid}/dcr`,
+                    method = DCR.editId ? 'PUT' : 'POST';
+                DCR.call(url, method, () => { $('#dcrModal').modal('hide'); DCR.loadTable(); DCR.toast('Saved'); }, obj);
             });
 
-            if (id) { // load existing values
-                $.ajax({ url: `${API}/api/dcr/${id}`, headers: { Authorization: `Bearer ${token}` } })
-                    .done(data => populateForm(data));
-            }
-            $('#dcrModal').modal('show');
-        }
-        function populateForm(data) {
-            for (const [k, v] of Object.entries(data)) {
-                const val = (k === 'date') ? String(v).slice(0, 10) : v;
-                $('#dcrForm [name="' + k + '"]').val(val);
-            }
-        }
+            /* ---------- Generic call ---------- */
+            DCR.call = (path, method, ok, data) => {
+                $.ajax({
+                    method, url: `${DCR.API}${path}`, headers: { Authorization: `Bearer ${DCR.token}` },
+                    contentType: 'application/json', data: data ? JSON.stringify(data) : undefined
+                })
+                    .done(ok)
+                    .fail(x => {
+                        const j = x.responseJSON || {}, msg = Array.isArray(j.errors) ? j.errors.join('<br>') : j.error || 'Error';
+                        DCR.toast(msg, 'danger');
+                    });
+            };
 
-        /* ---------- Save (create/update) ---------- */
-        $('#saveDcr').on('click', e => {
-            e.preventDefault();
-            const bid = $('#branchSel').val();
-            const obj = Object.fromEntries($('#dcrForm').serializeArray().map(p => [p.name, p.value]));
-            const url = editId ? `/api/dcr/${editId}` : `/api/branches/${bid}/dcr`;
-            const method = editId ? 'PUT' : 'POST';
-            call(url, method, () => { $('#dcrModal').modal('hide'); loadTable(); }, obj);
-        });
+            /* ---------- Silent auth on page load ---------- */
+            $(function () {
+                const t = sessionStorage.getItem('jwt');
+                if (!t) { $('#loginBox').removeClass('d-none'); return; }
+                DCR.token = t; DCR.loadStoredUser();
+                $.ajax({ url: `${DCR.API}/api/branches`, headers: { Authorization: `Bearer ${t}` } })
+                    .done(() => DCR.bootstrapData())
+                    .fail(() => { DCR.clearCreds(); $('#loginBox').removeClass('d-none'); $('#appShell').addClass('d-none'); });
+            });
 
-        /* ---------- call helper ---------- */
-        function call(path, method, okCb, data) {
-            $.ajax({
-                method, url: `${API}${path}`, headers: { Authorization: `Bearer ${token}` },
-                contentType: 'application/json',
-                data: data ? JSON.stringify(data) : undefined
-            }).done(okCb)
-                .fail(x => alert(JSON.stringify(x.responseJSON)));
-        }
+            /* ---------- Other event handlers ---------- */
+            $('#branchSel,#monthSel').on('change', () => DCR.loadTable());
+            $('#refreshBtn').on('click', () => DCR.loadTable());
+            $('#logoutLink').on('click', e => {
+                e.preventDefault();
+                DCR.clearCreds();
+                location.reload();
+            });
+            $('#toggleSide').on('click', () => $('#sideBar').toggleClass('open'));
+
+            window.DCR = DCR;   // expose for debugging
+        })(window, jQuery);
     </script>
+
 </body>
 
 </html>
