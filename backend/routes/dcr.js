@@ -5,9 +5,27 @@ const role = require('../middleware/roleGuard');
 const branchOk = require('../middleware/branchGuard');
 const inWindow = require('../utils/dateWindow');
 const makeNo = require('../utils/dcrNumber');
-const fieldSpec = require('../config/field-spec.json');
 
 const router = express.Router();
+
+/* helper: load form + its fields for a given branch & date -------------- */
+async function getFormAndFields(conn, branchId, theDate) {
+    /* form valid on that date */
+    const [[form]] = await conn.query(
+        `SELECT id FROM forms
+       WHERE branch_id=? AND valid_from<=? AND (valid_to IS NULL OR valid_to>? )
+       ORDER BY valid_from DESC LIMIT 1`,
+        [branchId, theDate, theDate]);
+    if (!form) return null;
+
+    /* fields for validation */
+    const [rows] = await conn.query(
+        `SELECT id,key_code,label,data_type,required
+       FROM form_fields
+      WHERE form_id=?`, [form.id]);
+
+    return { formId: form.id, fields: rows };
+}
 
 /* helper: fetch header + branch / status checks */
 async function loadHeader(conn, dcrId) {
@@ -57,22 +75,27 @@ router.post(
     branchOk('branchId'),
     async (req, res) => {
         const branchId = +req.params.branchId;
-        const body = req.body;           // expects { date, field1:…, field2:… }
+        const body = req.body;
 
         /* 1. date window */
         if (!inWindow(body.date, 7))
-            return res.status(400).json({ error: 'Date outside 7‑day window' });
+            return res.status(400).json({ error: 'Date outside 7-day window' });
 
-        /* 2. load branch code & field spec */
+        /* 2. load relational spec */
+        const conn = await db.getConnection();
+
         const [[branchRow]] = await db.query('SELECT code FROM branches WHERE id=?', [branchId]);
         if (!branchRow) return res.status(400).json({ error: 'Unknown branch' });
         const branchCode = branchRow.code;
-        const spec = fieldSpec[branchCode] || [];
+
+        const specObj = await getFormAndFields(conn, branchId, body.date);
+        if (!specObj) return res.status(400).json({ error: 'No active form for date' });
+        const { formId, fields: spec } = specObj;
 
         /* 3. validate payload */
         const errors = [];
         for (const f of spec) {
-            const v = body[f.key];
+            const v = body[f.key_code];
 
             const isEmpty = v === undefined || v === null || v === '';
 
@@ -88,7 +111,6 @@ router.post(
         if (errors.length) return res.status(422).json({ errors });
 
         /* 4. start transaction */
-        const conn = await db.getConnection();
         try {
             await conn.beginTransaction();
 
@@ -105,22 +127,19 @@ router.post(
             const dcrNo = makeNo(branchCode, body.date);
             const [head] = await conn.query(
                 `INSERT INTO dcr_header
-           (branch_id,dcr_number,dcr_date,status,created_by,updated_by)
-         VALUES (?,?,?,?,?,?)`,
-                [branchId, dcrNo, body.date, 'DRAFT', req.user.id, req.user.id]
-            );
+      (branch_id,form_id,dcr_number,dcr_date,status,created_by,updated_by)
+    VALUES (?,?,?,?,?,?,?)`,
+                [branchId, formId, dcrNo, body.date, 'DRAFT', req.user.id, req.user.id]);
             const dcrId = head.insertId;
 
             /* 4.2 insert values */
             const vals = spec
-                .filter(f => body[f.key] !== undefined && body[f.key] !== '')
-                .map(f => [dcrId, f.key, String(body[f.key])]);
+                .filter(f => f.key_code !== 'date' && body[f.key_code] !== undefined && body[f.key_code] !== '')
+                .map(f => [dcrId, f.id, body[f.key_code]]);
 
             if (vals.length)
                 await conn.query(
-                    'INSERT INTO dcr_values (dcr_id,field_key,value_text) VALUES ?',
-                    [vals]
-                );
+                    'INSERT INTO dcr_values (dcr_id,field_id,value_num) VALUES ?', [vals]);
 
             await conn.commit();
             res.status(201).json({ id: dcrId, dcr_number: dcrNo, status: 'DRAFT' });
@@ -156,13 +175,15 @@ router.put('/dcr/:id', auth, async (req, res) => {
         return res.status(403).json({ error: 'Forbidden' });
 
     /* branch code & spec */
-    const [[b]] = await db.query('SELECT code FROM branches WHERE id=?', [h.branch_id]);
-    const spec = fieldSpec[b.code] || [];
+    const conn = await db.getConnection();
+    const specObj = await getFormAndFields(conn, h.branch_id, body.date);
+    if (!specObj) return res.status(400).json({ error: 'No form for date' });
+    const { formId, fields: spec } = specObj;
 
     /* validation (same as create) */
     const errs = [];
     for (const f of spec) {
-        const v = body[f.key];
+        const v = body[f.key_code];
 
         const isEmpty = v === undefined || v === null || v === '';
 
@@ -182,7 +203,6 @@ router.put('/dcr/:id', auth, async (req, res) => {
     }
 
     /* transaction */
-    const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
@@ -210,13 +230,10 @@ router.put('/dcr/:id', auth, async (req, res) => {
         /* 2. replace values (simplest) */
         await conn.query('DELETE FROM dcr_values WHERE dcr_id=?', [dcrId]);
         const vals = spec
-            .filter(f => body[f.key] !== undefined && body[f.key] !== '')
-            .map(f => [dcrId, f.key, String(body[f.key])]);
+            .filter(f => f.key_code !== 'date' && body[f.key_code] !== undefined && body[f.key_code] !== '')
+            .map(f => [dcrId, f.id, body[f.key_code]]);
         if (vals.length)
-            await conn.query(
-                'INSERT INTO dcr_values (dcr_id,field_key,value_text) VALUES ?',
-                [vals]
-            );
+            await conn.query('INSERT INTO dcr_values (dcr_id,field_id,value_num) VALUES ?', [vals]);
 
         await conn.commit();
         res.json({ ok: true });
@@ -302,11 +319,12 @@ router.get('/dcr/:id', auth, async (req, res) => {
 
     /* 2. values */
     const [vals] = await db.query(
-        'SELECT field_key, value_text FROM dcr_values WHERE dcr_id = ?',
-        [dcrId]
-    );
+        `SELECT f.key_code AS k, v.value_num AS val
+     FROM dcr_values v
+     JOIN form_fields f ON f.id=v.field_id
+    WHERE v.dcr_id=?`, [dcrId]);
 
-    const obj = Object.fromEntries(vals.map(v => [v.field_key, v.value_text]));
+    const obj = Object.fromEntries(vals.map(v => [v.k, v.val]));
     obj.date = h.dcr_date;          // include date for the date input
     res.json(obj);
 });

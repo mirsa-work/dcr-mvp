@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');          // if front‑end runs on another port
 
 const authRoute = require('./routes/auth');
-const fieldSpecRoute = require('./routes/fieldSpec');
+const formSpec = require('./routes/formSpec');
 const dcrRoute = require('./routes/dcr');
 const branchesRoute = require('./routes/branches');
 
@@ -22,7 +22,7 @@ app.use('/api', authRoute);
 app.use('/api', branchesRoute);
 app.use('/api', dcrRoute);
 
-app.use('/api', fieldSpecRoute);
+app.use('/api', formSpec);
 
 /* health */
 app.get('/health', (_, res) => res.json({ ok: 1 }));
