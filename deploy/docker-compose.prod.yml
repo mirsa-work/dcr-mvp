@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.3
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -p${DB_ROOT} -h localhost" ]
+      interval: 10s
+      retries: 5
+
+  api:
+    build:
+      context: ../backend # path is relative to this file
+      dockerfile: prod.dockerfile # ensure NODE_ENV=production inside
+    restart: always
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000" # only visible to nginx
+
+  ui:
+    image: nginx:1.27-alpine
+    restart: always
+    volumes:
+      - ../frontend:/usr/share/nginx/html:ro
+      - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80" # public HTTP
+volumes:
+  db_data:

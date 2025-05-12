@@ -28,3 +28,5 @@ Thumbs.db
 backend/dist/
 frontend/dist/
 db/data/*
+*.pem
+.env.prod
