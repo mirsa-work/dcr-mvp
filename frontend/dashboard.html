@@ -696,7 +696,7 @@
                 // ─── DCR Actions ─────────────────────────
                 handleDcrAction: function (action, dcrId) {
                     const actions = {
-                        edit: () => this.openDcrModal(dcrId, 'DRAFT'),
+                        edit: () => this.openDcrModal(dcrId, 'DRAFT'), //TODO: This hardcoded status may not be correct, status could be REJECTED as well here.
                         submit: () => this.updateDcrStatus(dcrId, 'submit'),
                         accept: () => this.updateDcrStatus(dcrId, 'accept'),
                         reject: () => {

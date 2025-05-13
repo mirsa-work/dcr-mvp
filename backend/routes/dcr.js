@@ -78,7 +78,7 @@ router.post(
         const body = req.body;
 
         /* 1. date window */
-        if (!inWindow(body.date, 7))
+        if (!inWindow(body.date, 365)) //TODO: Revert to 7
             return res.status(400).json({ error: 'Date outside 7-day window' });
 
         /* 2. load relational spec */
