@@ -132,6 +132,20 @@
             word-break: break-word;
             max-width: 100px;
         }
+
+        .readonly-input {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        .dcr-number-link {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .dcr-number-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -428,6 +442,14 @@
                     el.refreshBtn.on('click', () => this.loadDcrTable());
                     el.newDcrBtn.on('click', () => this.openDcrModal(null));
 
+                    // DCR link clickable
+                    el.dcrTable.on('click', '.dcr-number-link', (e) => {
+                        e.preventDefault();
+                        const dcrId = $(e.target).closest('tr').data('id');
+                        const dcrStatus = $(e.target).closest('tr').data('status');
+                        this.openDcrModal(dcrId, dcrStatus);
+                    });
+
                     // DCR Table actions
                     el.dcrTable.on('click', '.action-btn', (e) => {
                         const action = $(e.target).data('action');
@@ -633,9 +655,9 @@
 
                 createDcrTableRow: function (dcr) {
                     return `
-                        <tr data-id="${dcr.id}">
+                        <tr data-id="${dcr.id}" data-status="${dcr.status}">
                             <td>${this.formatDate(dcr.dcr_date)}</td>
-                            <td>${dcr.dcr_number}</td>
+                            <td><a href="#" class="dcr-number-link">${dcr.dcr_number}</a></td>
                             <td>
                                 <span class="d-none d-md-inline badge badge-${dcr.status}">${dcr.status}</span>
                                 <span class="d-md-none status-icon" data-status="${dcr.status}" title="${dcr.status}"></span>
@@ -674,7 +696,7 @@
                 // ─── DCR Actions ─────────────────────────
                 handleDcrAction: function (action, dcrId) {
                     const actions = {
-                        edit: () => this.openDcrModal(dcrId),
+                        edit: () => this.openDcrModal(dcrId, 'DRAFT'),
                         submit: () => this.updateDcrStatus(dcrId, 'submit'),
                         accept: () => this.updateDcrStatus(dcrId, 'accept'),
                         reject: () => {
@@ -708,7 +730,9 @@
                 },
 
                 // ─── DCR Modal ──────────────────────────
-                openDcrModal: function (dcrId) {
+                openDcrModal: function (dcrId, dcrStatus) {
+                    const isReadOnly = this.state.user.role !== 'BRANCH' || (dcrId && dcrStatus !== 'DRAFT' && dcrStatus !== 'REJECTED');
+
                     this.state.editId = dcrId;
                     const branchCode = this.elements.branchSelect.find('option:selected').data('code');
                     const formSpec = this.state.formSpecs[branchCode];
@@ -719,10 +743,10 @@
                     }
 
                     // Set modal title
-                    this.elements.dcrModalTitle.text(dcrId ? 'Edit DCR' : 'New Daily Consumption Report');
+                    this.elements.dcrModalTitle.text(dcrId ? (isReadOnly ? 'View DCR' : 'Edit DCR') : 'New Daily Consumption Report');
 
                     // Build form
-                    this.buildDcrForm(formSpec);
+                    this.buildDcrForm(formSpec, isReadOnly);
 
                     // Load data if editing
                     if (dcrId) {
@@ -733,7 +757,7 @@
                     this.elements.dcrModal.show();
                 },
 
-                buildDcrForm: function (formSpec) {
+                buildDcrForm: function (formSpec, isReadOnly = false) {
                     const form = this.elements.dcrForm.empty();
                     const groups = formSpec.groups || [{
                         label: '',
@@ -759,15 +783,23 @@
                                     <label class="form-label">
                                         ${field.label}${field.required ? '<span class="text-danger">*</span>' : ''}
                                     </label>
-                                    <input class="form-control" 
+                                    <input class="form-control ${isReadOnly ? 'readonly-input' : ''}" 
                                            type="${inputType}" 
                                            step="${step}" 
                                            name="${field.key}" 
+                                           ${isReadOnly ? 'readonly' : ''} 
                                            ${field.required ? 'required' : ''}>
                                 </div>
                             `);
                         });
                     });
+
+                    // Hide save button if in read-only mode
+                    if (isReadOnly) {
+                        this.elements.saveDcrBtn.hide();
+                    } else {
+                        this.elements.saveDcrBtn.show();
+                    }
                 },
 
                 loadDcrData: function (dcrId) {
