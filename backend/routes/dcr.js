@@ -199,7 +199,12 @@ router.put('/dcr/:id', auth, async (req, res) => {
     // if date changed → regenerate dcr_number
     let newDcrNo = h.dcr_number;
     if (body.date !== h.dcr_date.toISOString().slice(0, 10)) {
-        newDcrNo = makeNo(b.code, body.date);   // makeNo(branchCode, yyyy-mm-dd)
+
+        const [[branchRow]] = await db.query('SELECT code FROM branches WHERE id=?', [branchId]);
+        if (!branchRow) return res.status(400).json({ error: 'Unknown branch' });
+        const branchCode = branchRow.code;
+
+        newDcrNo = makeNo(branchCode, body.date);
     }
 
     /* transaction */
