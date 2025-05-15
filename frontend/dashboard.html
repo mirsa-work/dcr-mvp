@@ -146,6 +146,50 @@
         .dcr-number-link:hover {
             text-decoration: underline;
         }
+
+        /* Reports view */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 0.5rem;
+            border: 1px solid #dee2e6;
+            text-align: right;
+        }
+
+        .report-table th {
+            background-color: #f8f9fa;
+            text-align: center;
+            position: sticky;
+            top: 0;
+        }
+
+        .report-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .report-table tr:hover {
+            background-color: #e9ecef;
+        }
+
+        .report-summary {
+            background-color: #e7f1ff;
+            font-weight: bold;
+        }
+
+        .report-section {
+            margin-bottom: 2rem;
+        }
+
+        .report-section h5 {
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 
@@ -186,13 +230,13 @@
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#">
+                        <a class="nav-link active" href="#" data-view="dashboard">
                             <i class="bi bi-file-earton-text me-2"></i>Daily Reports
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link disabled" href="#">
-                            <i class="bi bi-folder me-2"></i>Future Reports
+                        <a class="nav-link" href="#" data-view="reports">
+                            <i class="bi bi-graph-up me-2"></i>Reports
                         </a>
                     </li>
                 </ul>
@@ -269,6 +313,35 @@
                                 </thead>
                                 <tbody></tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- Reports View -->
+                    <div id="reportsView" class="h-100 d-flex flex-column d-none">
+                        <!-- Controls Row -->
+                        <div class="row g-2 g-md-3 mb-3">
+                            <div class="col-12 col-md-5 col-lg-4">
+                                <select id="reportBranchSelect" class="form-select"></select>
+                            </div>
+                            <div class="col-8 col-md-3 col-lg-3">
+                                <input id="reportMonthSelect" type="month" class="form-control">
+                            </div>
+                            <div class="col-4 col-md-2 col-lg-3">
+                                <button id="generateReportBtn" class="btn btn-primary w-100">
+                                    <i class="bi bi-file-earton-arrow-down"></i>
+                                    <span class="d-none d-md-inline"> Generate</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Report Content -->
+                        <div class="flex-grow-1 bg-white border rounded p-3 overflow-auto">
+                            <div id="reportContainer">
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-graph-up fs-1"></i>
+                                    <p class="mt-3">Select a branch and month to generate report</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>
@@ -436,6 +509,17 @@
                         this.handleLogout();
                     });
 
+                    // Navigation links
+                    $('[data-view]').on('click', (e) => {
+                        e.preventDefault();
+                        const view = $(e.target).closest('[data-view]').data('view');
+                        this.showView(view);
+
+                        // Update active state in sidebar
+                        $('.nav-link').removeClass('active');
+                        $(e.target).closest('.nav-link').addClass('active');
+                    });
+
                     // Dashboard
                     el.branchSelect.on('change', () => this.handleBranchChange());
                     el.monthSelect.on('change', () => this.loadDcrTable());
@@ -459,6 +543,9 @@
 
                     // DCR Modal
                     el.saveDcrBtn.on('click', () => this.saveDcr());
+
+                    // Generate report button
+                    $('#generateReportBtn').on('click', () => this.generateReport());
                 },
 
                 // Initialize UI state
@@ -547,6 +634,24 @@
                 showLoginError: function (message) {
                     this.elements.loginError.text(message).fadeIn();
                     setTimeout(() => this.elements.loginError.fadeOut(), 3000);
+                },
+
+                showView: function (viewName) {
+                    // Hide all views
+                    $('#dashboardView, #reportsView').addClass('d-none');
+
+                    // Show requested view
+                    if (viewName === 'reports') {
+                        // Only show reports view if user has permission
+                        if (this.state.user.role !== 'BRANCH') {
+                            $('#reportsView').removeClass('d-none');
+                            this.initializeReportsView();
+                        } else {
+                            this.showToast('You do not have permission to view reports', 'danger');
+                        }
+                    } else {
+                        $('#dashboardView').removeClass('d-none');
+                    }
                 },
 
                 // ─── Application Bootstrap ────────────────
@@ -861,6 +966,185 @@
                             this.showToast(errorMessage, 'danger');
                             console.error('DCR save error:', error);
                         });
+                },
+
+                // Initialize reports view
+                initializeReportsView: function () {
+                    // Populate branch select (use same branches as dashboard)
+                    const $select = $('#reportBranchSelect').empty();
+                    this.state.branches.forEach(branch => {
+                        $select.append(
+                            `<option value="${branch.id}">${branch.name}</option>`
+                        );
+                    });
+
+                    // Set current month
+                    const today = new Date();
+                    const currentMonth = today.toISOString().slice(0, 7);
+                    $('#reportMonthSelect').val(currentMonth);
+                },
+
+                // Generate report
+                generateReport: function () {
+                    const branchId = $('#reportBranchSelect').val();
+                    const month = $('#reportMonthSelect').val();
+
+                    this.apiRequest({
+                        url: `/api/reports?branchId=${branchId}&month=${month}`
+                    })
+                        .then(data => {
+                            this.renderReport(data);
+                        })
+                        .catch(error => {
+                            this.showToast('Failed to generate report', 'danger');
+                            console.error('Report generation error:', error);
+                        });
+                },
+
+                // Render report data
+                renderReport: function (reportData) {
+                    const $container = $('#reportContainer').empty();
+
+                    // Add report header
+                    $container.append(`
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4>Daily Consumption Report - ${reportData.month}</h4>
+                            <button class="btn btn-sm btn-outline-secondary" id="exportReportBtn">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                        </div>
+                        <div class="mb-4">
+                            <p class="mb-1"><strong>Location:</strong> ${reportData.branchName}</p>
+                            <p class="mb-1"><strong>Period:</strong> ${reportData.startDate} to ${reportData.endDate}</p>
+                        </div>
+                    `);
+
+                    // Add summary section
+                    $container.append(this.createSummarySection(reportData.summary));
+
+                    // Add daily details section
+                    $container.append(this.createDailyDetailsSection(reportData.dailyDetails));
+
+                    // Bind export button
+                    $('#exportReportBtn').on('click', () => this.exportReport(reportData));
+                },
+
+                createSummarySection: function (summary) {
+                    return `
+                        <div class="report-section">
+                            <h5>Summary</h5>
+                            <table class="report-table">
+                                <tr>
+                                    <th>Opening Stock</th>
+                                    <th>Purchases</th>
+                                    <th>Transfer In</th>
+                                    <th>Purchase Return</th>
+                                    <th>Transfer Out</th>
+                                </tr>
+                                <tr>
+                                    <td>${summary.openingStock.toLocaleString()}</td>
+                                    <td>${summary.purchases.toLocaleString()}</td>
+                                    <td>${summary.transferIn.toLocaleString()}</td>
+                                    <td>${summary.purchaseReturn.toLocaleString()}</td>
+                                    <td>${summary.transferOut.toLocaleString()}</td>
+                                </tr>
+                                <tr class="report-summary">
+                                    <td colspan="5" class="text-center">
+                                        Actual Consumption: ${summary.actualConsumption.toLocaleString()} | 
+                                        DCR Consumption: ${summary.dcrConsumption.toLocaleString()} | 
+                                        Variation: ${summary.variation.toLocaleString()}
+                                    </td>
+                                </tr>
+                                <tr class="report-summary">
+                                    <td colspan="5" class="text-center">
+                                        Total Mandays: ${summary.totalMandays} | 
+                                        Total Revenue: ${summary.totalRevenue.toLocaleString()} | 
+                                        Actual Average Cost: ${summary.actualAverageCost.toLocaleString()}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                },
+
+                createDailyDetailsSection: function (dailyData) {
+                    let html = `
+                        <div class="report-section">
+                            <h5>Daily Details</h5>
+                            <div class="table-responsive">
+                                <table class="report-table">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2">Date</th>
+                                            <th rowspan="2">Day</th>
+                                            <th colspan="4">Headcount</th>
+                                            <th colspan="4">Meals</th>
+                                            <th rowspan="2">Consumption</th>
+                                            <th rowspan="2">Total Revenue</th>
+                                            <th rowspan="2">Cost/Manday</th>
+                                            <th rowspan="2">Cost %</th>
+                                        </tr>
+                                        <tr>
+                                            <!-- Headcount subheaders -->
+                                            <th>Seniors</th>
+                                            <th>Juniors</th>
+                                            <th>Labors</th>
+                                            <th>Total</th>
+                                            
+                                            <!-- Meals subheaders -->
+                                            <th>Seniors</th>
+                                            <th>Juniors</th>
+                                            <th>Labors</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+
+                    dailyData.forEach(day => {
+                        html += `
+                            <tr>
+                                <td>${day.date}</td>
+                                <td>${day.day}</td>
+                                
+                                <!-- Headcount -->
+                                <td>${day.headcount.seniors}</td>
+                                <td>${day.headcount.juniors}</td>
+                                <td>${day.headcount.labors}</td>
+                                <td>${day.headcount.total}</td>
+                                
+                                <!-- Meals -->
+                                <td>${day.meals.seniors}</td>
+                                <td>${day.meals.juniors}</td>
+                                <td>${day.meals.labors}</td>
+                                <td>${day.meals.total}</td>
+                                
+                                <!-- Financial -->
+                                <td>${day.consumption.toLocaleString()}</td>
+                                <td>${day.totalRevenue.toLocaleString()}</td>
+                                <td>${day.costPerManday.toLocaleString()}</td>
+                                <td>${day.costPercentage}%</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+
+                    return html;
+                },
+
+                // Export report to Excel
+                exportReport: function (reportData) {
+                    // This would call your backend API to generate an Excel file
+                    const branchId = $('#reportBranchSelect').val();
+                    const month = $('#reportMonthSelect').val();
+
+                    window.open(`${this.config.apiBaseUrl}/api/reports/export?branchId=${branchId}&month=${month}`, '_blank');
                 },
 
                 serializeForm: function (form) {
