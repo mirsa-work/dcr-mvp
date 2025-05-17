@@ -17,6 +17,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
+    <!-- ─── Application Scripts ───────────────────────────── -->
+    <!-- Modular Architecture -->
+    <script src="assets/js/core.js"></script>
+    <script src="assets/js/modules/dcr.js"></script>
+    <script src="assets/js/modules/users.js"></script>
+
     <!-- ─── Application Styles ───────────────────────────── -->
     <style>
         /* Status badges */
@@ -162,7 +168,7 @@
                 <h5 class="mb-4 text-center">Login</h5>
                 <form id="loginForm">
                     <div class="mb-3">
-                        <input id="username" class="form-control" placeholder="Username" required>
+                        <input id="username" class="form-control" placeholder="Username" required autofocus>
                     </div>
                     <div class="mb-3">
                         <input id="password" type="password" class="form-control" placeholder="Password" required>
@@ -195,8 +201,8 @@
                             <li class="nav-item">
                                 <a class="nav-link active" href="#" data-bs-toggle="tab" data-bs-target="#dcrTab">
                                     <i class="bi bi-file-earmark-text me-2"></i>Records
-                                </a>
-                            </li>
+                        </a>
+                    </li>
                             <li class="nav-item admin-only d-none">
                                 <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#reports">
                                     <i class="bi bi-graph-up me-2"></i>Reports
@@ -245,42 +251,42 @@
                 <main class="flex-grow-1 p-3 overflow-auto">
                     <!-- Tab Content -->
                     <div class="tab-content h-100">
-                        <!-- Dashboard View -->
+                    <!-- Dashboard View -->
                         <div id="dcrTab" class="tab-pane fade show active h-100">
                             <div class="h-100 d-flex flex-column">
-                                <!-- Controls Row -->
-                                <div class="row g-2 g-md-3 mb-3">
-                                    <div class="col-12 col-md-5 col-lg-4">
-                                        <select id="branchSelect" class="form-select"></select>
-                                    </div>
-                                    <div class="col-8 col-md-3 col-lg-3">
-                                        <input id="monthSelect" type="month" class="form-control">
-                                    </div>
-                                    <div class="col-4 col-md-2 col-lg-3 d-flex gap-2">
-                                        <button id="refreshBtn" class="btn btn-outline-secondary flex-grow-1 text-nowrap">
-                                            <i class="bi bi-arrow-clockwise"></i>
-                                            <span class="d-none d-md-inline"> Refresh</span>
-                                        </button>
-                                        <button id="newDcrBtn" class="btn btn-success flex-grow-1 text-nowrap">
-                                            <i class="bi bi-plus-circle"></i>
-                                            <span class="d-none d-md-inline"> New</span>
-                                        </button>
-                                    </div>
-                                </div>
+                        <!-- Controls Row -->
+                        <div class="row g-2 g-md-3 mb-3">
+                            <div class="col-12 col-md-5 col-lg-4">
+                                <select id="branchSelect" class="form-select"></select>
+                            </div>
+                            <div class="col-8 col-md-3 col-lg-3">
+                                <input id="monthSelect" type="month" class="form-control">
+                            </div>
+                            <div class="col-4 col-md-2 col-lg-3 d-flex gap-2">
+                                <button id="refreshBtn" class="btn btn-outline-secondary flex-grow-1 text-nowrap">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                    <span class="d-none d-md-inline"> Refresh</span>
+                                </button>
+                                <button id="newDcrBtn" class="btn btn-success flex-grow-1 text-nowrap">
+                                    <i class="bi bi-plus-circle"></i>
+                                    <span class="d-none d-md-inline"> New</span>
+                                </button>
+                            </div>
+                        </div>
 
-                                <!-- Table -->
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover" id="dcrTable">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>DCR #</th>
-                                                <th>Status</th>
-                                                <th style="width:100px">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover" id="dcrTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>DCR #</th>
+                                        <th>Status</th>
+                                        <th style="width:100px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
                                 </div>
                             </div>
                         </div>
@@ -345,993 +351,171 @@
             </div>
         </div>
 
+        <!-- Change Password Modal -->
+        <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Change Password</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changePasswordForm">
+                            <div class="mb-3">
+                                <label for="currentPassword" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="currentPassword" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="newPassword" required minlength="6">
+                                <div class="form-text">Password must be at least 6 characters long</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirmPassword" required>
+                            </div>
+                            <div id="changePasswordError" class="text-danger d-none mb-3"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="changePasswordSubmitBtn" class="btn btn-primary">Change Password</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reset Password Modal (Admin only) -->
+        <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reset User Password</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="resetPasswordForm">
+                            <div class="mb-3">
+                                <label for="resetUserSelect" class="form-label">Select User</label>
+                                <select class="form-select" id="resetUserSelect" required></select>
+                            </div>
+                            <div id="generatedPasswordContainer" class="mb-3 d-none">
+                                <label for="generatedPassword" class="form-label">Generated Password</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="generatedPassword" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" id="copyPasswordBtn">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text text-warning">
+                                    Please copy this password and provide it to the user. This is the only time it will be displayed.
+                                </div>
+                            </div>
+                            <div id="resetPasswordError" class="text-danger d-none mb-3"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="resetPasswordSubmitBtn" class="btn btn-primary">Reset Password</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Toast Notifications -->
         <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
     </div>
 
     <!-- ─── Application Script ───────────────────────────── -->
     <script>
-        /**
-         * DCR Dashboard Application
-         * 
-         * This application manages Daily Consumption Reports with features for:
-         * - User authentication
-         * - Branch selection
-         * - DCR creation, editing, and submission
-         * - Status management (Draft, Submitted, Accepted, Rejected)
-         */
-        (function (window, $) {
-            'use strict';
-
-            // Application namespace
-            const DCR = {
-                // Configuration
-                config: {
-                    apiBaseUrl: '', // To be set during initialization
-                    endpoints: {
-                        login: '/api/login',
-                        branches: '/api/branches',
-                        dcr: '/api/dcr',
-                        formSpec: '/api/form-spec'
-                    },
-                    localStorageKeys: {
-                        token: 'jwt',
-                        user: 'user'
-                    }
-                },
-
-                // State management
-                state: {
-                    token: null,
-                    user: null,
-                    branches: [],
-                    formSpecs: {}, // Cached by branch code
-                    editId: null,
-                    dataTable: null
-                },
-
-                // DOM elements cache
-                elements: {
-                    // Views
-                    loginView: null,
-                    appShell: null,
-                    adminOnlyElements: null,
-
-                    // Login form
-                    loginForm: null,
-                    usernameInput: null,
-                    passwordInput: null,
-                    loginError: null,
-
-                    // App shell
-                    toggleSidebarBtn: null,
-                    usernameDisplay: null,
-                    logoutBtn: null,
-                    headerTitle: null,
-
-                    // Dashboard
-                    branchSelect: null,
-                    monthSelect: null,
-                    refreshBtn: null,
-                    newDcrBtn: null,
-                    dcrTable: null,
-
-                    // Reports
-                    reportBranchSelect: null,
-                    reportMonth: null,
-                    viewReportBtn: null,
-                    reportPreview: null,
-                    reportTitle: null,
-                    downloadPdfBtn: null,
-
-                    // DCR Modal
-                    dcrModal: null,
-                    dcrModalTitle: null,
-                    dcrForm: null,
-                    saveDcrBtn: null,
-
-                    // Toast container
-                    toastContainer: null
-                },
-
                 // Initialize the application
-                init: function () {
-                    this.cacheElements();
-                    this.bindEvents();
-                    this.initializeUI();
-                },
-
-                // Cache DOM elements for better performance
-                cacheElements: function () {
-                    const el = this.elements;
-
-                    // Views
-                    el.loginView = $('#loginView');
-                    el.appShell = $('#appShell');
-                    el.adminOnlyElements = $('.admin-only');
-
-                    // Login form
-                    el.loginForm = $('#loginForm');
-                    el.usernameInput = $('#username');
-                    el.passwordInput = $('#password');
-                    el.loginError = $('#loginError');
-
-                    // App shell
-                    el.toggleSidebarBtn = $('#toggleSidebar');
-                    el.usernameDisplay = $('#usernameDisplay');
-                    el.logoutBtn = $('#logoutBtn');
-                    el.headerTitle = $('#headerTitle');
-
-                    // Dashboard
-                    el.branchSelect = $('#branchSelect');
-                    el.monthSelect = $('#monthSelect');
-                    el.refreshBtn = $('#refreshBtn');
-                    el.newDcrBtn = $('#newDcrBtn');
-                    el.dcrTable = $('#dcrTable');
-
-                    // Reports
-                    el.reportBranchSelect = $('#reportBranch');
-                    el.reportMonth = $('#reportMonth');
-                    el.viewReportBtn = $('#viewReportBtn');
-                    el.reportPreview = $('#reportPreview');
-                    el.reportTitle = $('#reportTitle');
-                    el.downloadPdfBtn = $('#downloadPdfBtn');
-
-                    // DCR Modal
-                    el.dcrModal = new bootstrap.Modal('#dcrModal');
-                    el.dcrModalTitle = $('#dcrModalTitle');
-                    el.dcrForm = $('#dcrForm');
-                    el.saveDcrBtn = $('#saveDcrBtn');
-
-                    // Toast container
-                    el.toastContainer = $('#toastContainer');
-                },
-
-                // Bind event handlers
-                bindEvents: function () {
-                    const el = this.elements;
-
-                    // Login form
-                    el.loginForm.on('submit', (e) => {
-                        e.preventDefault();
-                        this.handleLogin();
-                    });
-
-                    // App shell
-                    el.toggleSidebarBtn.on('click', () => {
-                        $('#sideBar').toggleClass('open');
-                    });
-
-                    el.logoutBtn.on('click', (e) => {
-                        e.preventDefault();
-                        this.handleLogout();
-                    });
-                    
-                    // Tab navigation - update header title
-                    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-                        const targetId = $(e.target).attr('data-bs-target');
-                        if (targetId === '#dcrTab') {
-                            $('#headerTitle').text('DCR - Records');
-                        } else if (targetId === '#reports') {
-                            $('#headerTitle').text('DCR - Reports');
-                        }
-                    });
-
-                    // Dashboard
-                    el.branchSelect.on('change', () => this.handleBranchChange());
-                    el.monthSelect.on('change', () => this.loadDcrTable());
-                    el.refreshBtn.on('click', () => this.loadDcrTable());
-                    el.newDcrBtn.on('click', () => this.openDcrModal(null));
-
-                    // DCR link clickable
-                    el.dcrTable.on('click', '.dcr-number-link', (e) => {
-                        e.preventDefault();
-                        const dcrId = $(e.target).closest('tr').data('id');
-                        const dcrStatus = $(e.target).closest('tr').data('status');
-                        this.openDcrModal(dcrId, dcrStatus);
-                    });
-
-                    // DCR Table actions
-                    el.dcrTable.on('click', '.action-btn', (e) => {
-                        const action = $(e.target).data('action');
-                        const dcrId = $(e.target).closest('tr').data('id');
-                        this.handleDcrAction(action, dcrId);
-                    });
-
-                    // DCR Modal
-                    el.saveDcrBtn.on('click', () => this.saveDcr());
-                },
-
-                // Initialize UI state
-                initializeUI: function () {
-                    // Check for existing session
-                    const token = localStorage.getItem(this.config.localStorageKeys.token);
-
-                    if (token) {
-                        this.state.token = token;
-                        this.loadUserFromStorage();
-                        
-                        // Show/hide admin features before showing the app shell
-                        if (this.state.user && this.state.user.role === 'ADMIN') {
-                            this.elements.adminOnlyElements.removeClass('d-none');
-                        }
-                        
-                        this.showAppShell();
-                        this.bootstrapApplication();
+        $(document).ready(() => {
+            // Set API base URL if needed (can also be set in .env)
+            Core.config.apiBaseUrl = '';
+            
+            // Function to initialize DCR module
+            function initializeDcr() {
+                console.log('Initializing DCR module from dashboard');
+                
+                // Initialize module if it exists
+                if (window.DCR && !window.DCR.state.initialized) {
+                    console.log('Initializing DCR directly');
+                    window.DCR.init();
+                } else if (Core.module && Core.module.get('dcr')) {
+                    console.log('Bootstrapping registered DCR module');
+                    Core.module.get('dcr').bootstrapUI();
                     } else {
-                        this.showLoginView();
-                    }
-                },
-
-                // Show login view
-                showLoginView: function () {
-                    this.elements.loginView.removeClass('d-none');
-                    this.elements.appShell.addClass('d-none');
-                },
-
-                // Show application shell
-                showAppShell: function () {
-                    this.elements.loginView.addClass('d-none');
-                    this.elements.appShell.removeClass('d-none');
-                },
-
-                // ─── Authentication ───────────────────────
-                handleLogin: function () {
-                    const username = this.elements.usernameInput.val().trim();
-                    const password = this.elements.passwordInput.val();
-
-                    if (!username || !password) {
-                        this.showLoginError('Please enter both username and password');
-                        return;
-                    }
-
-                    this.apiRequest({
-                        url: this.config.endpoints.login,
-                        method: 'POST',
-                        data: { username, password },
-                        skipAuth: true
-                    })
-                        .then(response => {
-                            this.state.token = response.token;
-                            this.state.user = response.user;
-
-                            // Store credentials
-                            localStorage.setItem(this.config.localStorageKeys.token, response.token);
-                            localStorage.setItem(this.config.localStorageKeys.user, JSON.stringify(response.user));
-
-                            // Update UI and bootstrap application
-                            this.showAppShell();
-                            this.bootstrapApplication();
-                        })
-                        .catch(error => {
-                            this.showLoginError(error.message || 'Login failed');
-                        });
-                },
-
-                handleLogout: function () {
-                    // Clear state and storage
-                    this.state.token = null;
-                    this.state.user = null;
-                    localStorage.removeItem(this.config.localStorageKeys.token);
-                    localStorage.removeItem(this.config.localStorageKeys.user);
-
-                    // Reload the page to reset the application
-                    window.location.reload();
-                },
-
-                loadUserFromStorage: function () {
-                    const userData = localStorage.getItem(this.config.localStorageKeys.user);
-                    if (userData) {
-                        try {
-                            this.state.user = JSON.parse(userData);
-                        } catch (e) {
-                            console.error('Failed to parse user data from storage', e);
-                            DCR.handleLogout();
-                        }
-                    }
-                },
-
-                showLoginError: function (message) {
-                    this.elements.loginError.text(message).fadeIn();
-                    setTimeout(() => this.elements.loginError.fadeOut(), 3000);
-                },
-
-                // ─── Application Bootstrap ────────────────
-                bootstrapApplication: function () {
-                    // Update UI with user info
-                    this.elements.usernameDisplay.text(this.state.user.username);
-
-                    // Hide new DCR button if user doesn't have permission
-                    if (this.state.user.role !== 'BRANCH') {
-                        this.elements.newDcrBtn.hide();
-                    }
-
-                    // Load branches and initialize the dashboard
-                    this.loadBranches()
-                        .then(() => {
-                            // Set current month to today
-                            const today = new Date();
-                            const currentMonth = today.toISOString().slice(0, 7);
-                            this.elements.monthSelect.val(currentMonth);
-
-                            // Load initial data
-                            this.loadDcrTable();
-
-                            // Initialize reports if admin
-                            if (this.state.user.role === 'ADMIN') {
-                                this.initReports();
-                            }
-                        })
-                        .catch(error => {
-                            this.showToast('Failed to load branches', 'danger');
-                            console.error('Bootstrap error:', error);
-                        });
-                },
-
-                // ─── Data Loading ────────────────────────
-                loadBranches: function () {
-                    return this.apiRequest({
-                        url: this.config.endpoints.branches
-                    })
-                        .then(branches => {
-                            this.state.branches = branches;
-                            this.populateBranchSelect(branches);
-
-                            // Set the first branch as current
-                            if (branches.length > 0) {
-                                return this.ensureFormSpec(branches[0].id, branches[0].code);
-                            }
-                        });
-                },
-
-                populateBranchSelect: function (branches) {
-                    const select = this.elements.branchSelect.empty();
-
-                    branches.forEach(branch => {
-                        select.append(
-                            `<option value="${branch.id}" data-code="${branch.code}">${branch.name}</option>`
-                        );
-                    });
-                },
-
-                ensureFormSpec: function (branchId, branchCode) {
-                    // Return if already cached
-                    if (this.state.formSpecs[branchCode]) {
-                        return Promise.resolve();
-                    }
-
-                    return this.apiRequest({
-                        url: `${this.config.endpoints.formSpec}?branchId=${branchId}`
-                    })
-                        .then(spec => {
-                            this.state.formSpecs[branchCode] = spec;
-                        });
-                },
-
-                loadDcrTable: function () {
-                    const branchId = this.elements.branchSelect.val();
-                    const month = this.elements.monthSelect.val();
-
-                    this.apiRequest({
-                        url: `/api/branches/${branchId}/dcr?month=${month}`
-                    })
-                        .then(data => {
-                            this.renderDcrTable(data);
-                        })
-                        .catch(error => {
-                            this.showToast('Failed to load DCR data', 'danger');
-                            console.error('DCR table load error:', error);
-                        });
-                },
-
-                renderDcrTable: function (rows) {
-                    // Destroy existing DataTable if it exists
-                    if (this.state.dataTable) {
-                        this.state.dataTable.destroy();
-                        this.state.dataTable = null;
-                    }
-                    const tableBody = this.elements.dcrTable.find('tbody').empty();
-
-                    // Add rows to table
-                    rows.forEach(row => {
-                        tableBody.append(this.createDcrTableRow(row));
-                    });
-
-                    // Initialize DataTable
-                    this.state.dataTable = new DataTable('#dcrTable', {
-                        pageLength: 10,
-                        order: [[0, 'desc']],
-                        responsive: true
-                    });
-                },
-
-                createDcrTableRow: function (dcr) {
-                    return `
-                        <tr data-id="${dcr.id}" data-status="${dcr.status}">
-                            <td>${this.formatDate(dcr.dcr_date)}</td>
-                            <td><a href="#" class="dcr-number-link">${dcr.dcr_number}</a></td>
-                            <td>
-                                <span class="d-none d-md-inline badge badge-${dcr.status}">${dcr.status}</span>
-                                <span class="d-md-none status-icon" data-status="${dcr.status}" title="${dcr.status}"></span>
-                            </td>
-                            <td>${this.createActionButtons(dcr)}</td>
-                        </tr>
-                    `;
-                },
-
-                createActionButtons: function (dcr) {
-                    const actions = [];
-                    const isBranchUser = this.state.user.role === 'BRANCH';
-                    const isAdminUser = this.state.user.role === 'ADMIN';
-
-                    if (['DRAFT', 'REJECTED'].includes(dcr.status) && isBranchUser) {
-                        actions.push(this.createActionButton('pencil', 'edit', 'Edit'));
-                        actions.push(this.createActionButton('arrow-up-circle', 'submit', 'Submit'));
-                    }
-
-                    if (dcr.status === 'SUBMITTED' && isAdminUser) {
-                        actions.push(this.createActionButton('check-circle', 'accept', 'Accept'));
-                        actions.push(this.createActionButton('x-circle', 'reject', 'Reject'));
-                    }
-
-                    if (dcr.status === 'ACCEPTED' && isAdminUser) {
-                        actions.push(this.createActionButton('arrow-counterclockwise', 'reopen', 'Re-open'));
-                    }
-
-                    return actions.length > 0 ? actions.join('') : '—';
-                },
-
-                createActionButton: function (icon, action, title) {
-                    return `<i class="bi bi-${icon} action-btn" data-action="${action}" title="${title}"></i>`;
-                },
-
-                // ─── DCR Actions ─────────────────────────
-                handleDcrAction: function (action, dcrId) {
-                    const actions = {
-                        edit: () => this.openDcrModal(dcrId, 'DRAFT'), //TODO: This hardcoded status may not be correct, status could be REJECTED as well here.
-                        submit: () => this.updateDcrStatus(dcrId, 'submit'),
-                        accept: () => this.updateDcrStatus(dcrId, 'accept'),
-                        reject: () => {
-                            const reason = prompt('Reject reason?');
-                            if (reason !== null) {
-                                this.updateDcrStatus(dcrId, 'reject', { reason });
-                            }
-                        },
-                        reopen: () => this.updateDcrStatus(dcrId, 'reopen')
-                    };
-
-                    if (actions[action]) {
-                        actions[action]();
-                    }
-                },
-
-                updateDcrStatus: function (dcrId, action, data = {}) {
-                    this.apiRequest({
-                        url: `/api/dcr/${dcrId}/${action}`,
-                        method: 'POST',
-                        data: data
-                    })
-                        .then(() => {
-                            this.showToast(`DCR ${action} successful`);
-                            this.loadDcrTable();
-                        })
-                        .catch(error => {
-                            this.showToast(`Failed to ${action} DCR`, 'danger');
-                            console.error(`DCR ${action} error:`, error);
-                        });
-                },
-
-                // ─── DCR Modal ──────────────────────────
-                openDcrModal: function (dcrId, dcrStatus) {
-                    const isReadOnly = this.state.user.role !== 'BRANCH' || (dcrId && dcrStatus !== 'DRAFT' && dcrStatus !== 'REJECTED');
-
-                    this.state.editId = dcrId;
-                    const branchCode = this.elements.branchSelect.find('option:selected').data('code');
-                    const formSpec = this.state.formSpecs[branchCode];
-
-                    if (!formSpec) {
-                        this.showToast('No form specification available for this branch', 'danger');
-                        return;
-                    }
-
-                    // Set modal title
-                    this.elements.dcrModalTitle.text(dcrId ? (isReadOnly ? 'View DCR' : 'Edit DCR') : 'New Daily Consumption Report');
-
-                    // Build form
-                    this.buildDcrForm(formSpec, isReadOnly);
-
-                    // Load data if editing
-                    if (dcrId) {
-                        this.loadDcrData(dcrId);
-                    }
-
-                    // Show modal
-                    this.elements.dcrModal.show();
-                },
-
-                buildDcrForm: function (formSpec, isReadOnly = false) {
-                    const form = this.elements.dcrForm.empty();
-                    const groups = formSpec.groups || [{
-                        label: '',
-                        fields: Array.isArray(formSpec) ? formSpec : formSpec.fields || []
-                    }];
-
-                    groups.forEach(group => {
-                        if (group.label) {
-                            form.append(`
-                                <div class="col-12 form-section">
-                                    <h6 class="form-section-header">${group.label}</h6>
-                                    <hr class="mt-0 mb-2">
-                                </div>
-                            `);
-                        }
-
-                        group.fields.forEach(field => {
-                            const inputType = field.type === 'date' ? 'date' : 'number';
-                            const step = field.type === 'decimal' ? '0.01' : '1';
-
-                            form.append(`
-                                <div class="col-md-4">
-                                    <label class="form-label">
-                                        ${field.label}${field.required ? '<span class="text-danger">*</span>' : ''}
-                                    </label>
-                                    <input class="form-control ${isReadOnly ? 'readonly-input' : ''}" 
-                                           type="${inputType}" 
-                                           step="${step}" 
-                                           name="${field.key}" 
-                                           ${isReadOnly ? 'readonly' : ''} 
-                                           ${field.required ? 'required' : ''}>
-                                </div>
-                            `);
-                        });
-                    });
-
-                    // Hide save button if in read-only mode
-                    if (isReadOnly) {
-                        this.elements.saveDcrBtn.hide();
-                    } else {
-                        this.elements.saveDcrBtn.show();
-                    }
-                },
-
-                loadDcrData: function (dcrId) {
-                    this.apiRequest({
-                        url: `${this.config.endpoints.dcr}/${dcrId}`
-                    })
-                        .then(dcr => {
-                            this.populateDcrForm(dcr);
-                        })
-                        .catch(error => {
-                            this.showToast('Failed to load DCR data', 'danger');
-                            console.error('DCR load error:', error);
-                        });
-                },
-
-                populateDcrForm: function (dcr) {
-                    Object.entries(dcr).forEach(([key, value]) => {
-                        const input = this.elements.dcrForm.find(`[name="${key}"]`);
-
-                        if (input.length) {
-                            input.val(key === 'date' ? value.slice(0, 10) : value);
-                        }
-                    });
-                },
-
-                saveDcr: function () {
-                    // Validate form
-                    if (!this.elements.dcrForm[0].reportValidity()) {
-                        return;
-                    }
-
-                    const formData = this.serializeForm(this.elements.dcrForm);
-                    const branchId = this.elements.branchSelect.val();
-
-                    const request = this.state.editId
-                        ? {
-                            url: `${this.config.endpoints.dcr}/${this.state.editId}`,
-                            method: 'PUT'
-                        }
-                        : {
-                            url: `/api/branches/${branchId}/dcr`,
-                            method: 'POST'
-                        };
-
-                    this.apiRequest({
-                        ...request,
-                        data: formData
-                    })
-                        .then(() => {
-                            this.elements.dcrModal.hide();
-                            this.showToast('DCR saved successfully');
-                            this.loadDcrTable();
-                        })
-                        .catch(error => {
-                            let errorMessage = 'Failed to save DCR';
-                            if (error.message) {
-                                errorMessage = error.message;
-                            }
-                            this.showToast(errorMessage, 'danger');
-                            console.error('DCR save error:', error);
-                        });
-                },
-
-                serializeForm: function (form) {
-                    return Object.fromEntries(
-                        form.serializeArray().map(item => [item.name, item.value])
-                    );
-                },
-
-                // ─── API Utilities ──────────────────────
-                apiRequest: function (options) {
-                    const defaults = {
-                        url: '',
-                        method: 'GET',
-                        data: null,
-                        skipAuth: false
-                    };
-
-                    const config = { ...defaults, ...options };
-
-                    return new Promise((resolve, reject) => {
-                        $.ajax({
-                            url: `${this.config.apiBaseUrl}${config.url}`,
-                            method: config.method,
-                            contentType: 'application/json',
-                            data: config.data ? JSON.stringify(config.data) : undefined,
-                            headers: config.skipAuth ? {} : {
-                                Authorization: `Bearer ${this.state.token}`
-                            }
-                        })
-                            .done(response => resolve(response))
-                            .fail(xhr => {
-                                const error = this.parseApiError(xhr);
-                                reject(error);
-                            });
-                    });
-                },
-
-                parseApiError: function (xhr) {
-                    try {
-                        const response = xhr.responseJSON;
-
-                        if (response && response.error) {
-                            return new Error(response.error);
-                        }
-
-                        if (response && response.errors) {
-                            return new Error(response.errors.join(', '));
-                        }
-                    } catch (e) {
-                        console.error('Error parsing API error:', e);
-                    }
-
-                    return new Error(xhr.statusText || 'Request failed');
-                },
-
-                // ─── UI Utilities ────────────────────────
-                showToast: function (message, type = 'success') {
-                    const toastId = `toast-${Date.now()}`;
-                    const toastClass = type === 'success' ? 'bg-success' : 'bg-danger';
-
-                    const toast = $(`
-                        <div id="${toastId}" class="toast ${toastClass} text-white">
-                            <div class="toast-body">${message}</div>
-                        </div>
-                    `);
-
-                    this.elements.toastContainer.append(toast);
-
-                    // Show and auto-remove toast
-                    const bsToast = new bootstrap.Toast(toast[0], { delay: 3000 });
-                    bsToast.show();
-
-                    toast.on('hidden.bs.toast', () => {
-                        toast.remove();
-                    });
-                },
-
-                formatDate: function (isoDate) {
-                    const date = new Date(isoDate);
-                    return date.toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                    });
-                },
-
-                // ─── Event Handlers ──────────────────────
-                handleBranchChange: function () {
-                    const branchId = this.elements.branchSelect.val();
-                    const branchCode = this.elements.branchSelect.find('option:selected').data('code');
-
-                    this.ensureFormSpec(branchId, branchCode)
-                        .then(() => this.loadDcrTable())
-                        .catch(error => {
-                            this.showToast('Failed to load branch specification', 'danger');
-                            console.error('Branch change error:', error);
-                        });
-                },
-
-                // Reports functionality
-                initReports: function() {
-                    if (this.state.user.role !== 'ADMIN') {
-                        return;
-                    }
-
-                    const el = this.elements;
-
-                    // Set current month by default
-                    const today = new Date();
-                    const currentMonth = today.toISOString().slice(0, 7);
-                    $('#reportMonth').val(currentMonth);
-
-                    // Populate branch select
-                    this.apiRequest({
-                        url: this.config.endpoints.branches
-                    })
-                    .then(branches => {
-                        $('#reportBranch').html(
-                            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('')
-                        );
-                    });
-
-                    // Handle report generation
-                    $('#viewReportBtn').on('click', async () => {
-                        const yearMonth = $('#reportMonth').val();
-                        const branchId = $('#reportBranch').val();
-
-                        if (!yearMonth || !branchId) {
-                            this.showToast('Please select branch and month', 'danger');
-                            return;
-                        }
-
-                        try {
-                            const response = await this.apiRequest({
-                                url: `/api/branches/${branchId}/reports/${yearMonth}/data`
-                            });
-                            this.displayReport(response);
-                        } catch (err) {
-                            this.showToast('Failed to generate report', 'danger');
-                            console.error('Report generation error:', err);
-                        }
-                    });
-
-                    // Handle PDF download
-                    el.downloadPdfBtn.on('click', async () => {
-                        const branchId = el.downloadPdfBtn.data('branch');
-                        const yearMonth = el.downloadPdfBtn.data('period');
-
-                        try {
-                            const response = await fetch(
-                                `${this.config.apiBaseUrl}/api/branches/${branchId}/reports/${yearMonth}/pdf`,
-                                {
-                                    headers: { 'Authorization': `Bearer ${this.state.token}` }
-                                }
-                            );
-
-                            if (response.ok) {
-                                const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `report-${yearMonth}.pdf`;
-                                document.body.appendChild(a);
-                                a.click();
-                                window.URL.revokeObjectURL(url);
-                                a.remove();
-                            } else {
-                                const error = await response.json();
-                                this.showToast(error.error || 'Failed to download PDF', 'danger');
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            this.showToast('Failed to download PDF', 'danger');
-                        }
-                    });
-                },
-
-                displayReport: function(data) {
-                    const el = this.elements;
-
-                    // Show report preview
-                    el.reportPreview.removeClass('d-none');
-
-                    // Set report title
-                    el.reportTitle.text(`${data.branch.name} - ${data.period}`);
-
-                    // Create table header based on branch-specific structure
-                    this.createReportTable(data);
-
-                    // Set download PDF button
-                    el.downloadPdfBtn.data('branch', data.branch.id).data('period', data.period);
-                },
-
-                createReportTable: function(data) {
-                    const tableContainer = $('#reportPreview .table-responsive');
-                    tableContainer.empty();
-                    
-                    // Check if we have any daily data
-                    if (data.dailyData.length === 0) {
-                        tableContainer.html('<div class="alert alert-info mt-3">No accepted DCRs found for this month. Please select a different month or ensure DCRs have been approved.</div>');
-                        return;
-                    }
-                    
-                    // Create table element
-                    const table = $('<table class="table table-sm table-bordered table-hover" id="reportTable"></table>');
-                    
-                    // Create the header
-                    const thead = $('<thead class="table-light"></thead>');
-                    
-                    // First header row - Group headers
-                    const headerRow1 = $('<tr></tr>');
-                    headerRow1.append('<th rowspan="2">Date</th>');
-                    headerRow1.append('<th rowspan="2">Day</th>');
-                    
-                    // Add group columns
-                    data.groups.forEach(group => {
-                        // Skip groups with no fields or system fields
-                        const relevantFields = group.fields.filter(f => 
-                            f.key !== 'date' && f.key !== 'consumption' && 
-                            f.key !== 'opening_stock' && f.key !== 'closing_stock');
-                        
-                        if (relevantFields.length === 0) return;
-                        
-                        headerRow1.append(`<th colspan="${relevantFields.length}" class="text-center">${group.label}</th>`);
-                    });
-                    
-                    // Add consumption/revenue columns
-                    headerRow1.append('<th rowspan="2" class="text-center">Consumption</th>');
-                    headerRow1.append('<th rowspan="2" class="text-center">Total Revenue</th>');
-                    headerRow1.append('<th rowspan="2" class="text-center">Cost %</th>');
-                    
-                    // Second header row - Field names
-                    const headerRow2 = $('<tr></tr>');
-                    
-                    // Add field column headers
-                    data.groups.forEach(group => {
-                        // Skip groups with no fields or system fields
-                        const relevantFields = group.fields.filter(f => 
-                            f.key !== 'date' && f.key !== 'consumption' && 
-                            f.key !== 'opening_stock' && f.key !== 'closing_stock');
-                        
-                        if (relevantFields.length === 0) return;
-                        
-                        // Add each field header
-                        relevantFields.forEach(field => {
-                            // Add rate if available
-                            const rate = this.findRateForField(data.revenueTotals, field);
-                            const rateText = rate ? `<br>${rate.toFixed(2)}` : '';
-                            headerRow2.append(`<th class="text-center">${field.label}${rateText}</th>`);
-                        });
-                    });
-                    
-                    // Add headers to table
-                    thead.append(headerRow1);
-                    thead.append(headerRow2);
-                    table.append(thead);
-                    
-                    // Create table body
-                    const tbody = $('<tbody></tbody>');
-                    
-                    // Add day rows
-                    const colorMap = {
-                        'SUN': 'text-success',
-                        'MON': 'text-danger',
-                        'TUE': 'text-success',
-                        'WED': 'text-warning',
-                        'THU': 'text-primary',
-                        'FRI': 'text-danger',
-                        'SAT': 'text-secondary'
-                    };
-                    
-                    data.dailyData.forEach((day, index) => {
-                        const rowClass = index % 2 === 0 ? '' : 'table-light';
-                        const dayColorClass = colorMap[day.day] || '';
-                        const date = new Date(day.date);
-                        const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear().toString().slice(2)}`;
-                        
-                        const row = $(`<tr class="${rowClass}"></tr>`);
-                        
-                        // Add date and day
-                        row.append(`<td>${formattedDate}</td>`);
-                        row.append(`<td class="${dayColorClass} fw-bold">${day.day}</td>`);
-                        
-                        // Add group data
-                        data.groups.forEach(group => {
-                            // Skip groups with no fields or system fields
-                            const relevantFields = group.fields.filter(f => 
-                                f.key !== 'date' && f.key !== 'consumption' && 
-                                f.key !== 'opening_stock' && f.key !== 'closing_stock');
-                            
-                            if (relevantFields.length === 0) return;
-                            
-                            // Add field values
-                            relevantFields.forEach(field => {
-                                const value = day.groups[group.id]?.fields[field.key]?.value || 0;
-                                row.append(`<td class="text-center">${Number(value)}</td>`);
-                            });
-                        });
-                        
-                        // Add consumption, revenue, cost
-                        const consumption = Number(day.consumption);
-                        const revenue = Number(day.revenue);
-                        const costPercentage = revenue > 0 ? ((consumption / revenue) * 100) : 0;
-                        
-                        row.append(`<td class="text-center">${this.formatNumber(consumption)}</td>`);
-                        row.append(`<td class="text-center">${this.formatNumber(revenue)}</td>`);
-                        row.append(`<td class="text-center">${this.formatNumber(costPercentage)}%</td>`);
-                        
-                        tbody.append(row);
-                    });
-                    
-                    table.append(tbody);
-                    
-                    // Create footer with totals
-                    const tfoot = $('<tfoot></tfoot>');
-                    const totalRow = $('<tr class="fw-bold"></tr>');
-                    
-                    // Date and day total
-                    totalRow.append('<td colspan="2" class="text-center">TOTAL</td>');
-                    
-                    // Group totals
-                    data.groups.forEach(group => {
-                        // Skip groups with no fields or system fields
-                        const relevantFields = group.fields.filter(f => 
-                            f.key !== 'date' && f.key !== 'consumption' && 
-                            f.key !== 'opening_stock' && f.key !== 'closing_stock');
-                        
-                        if (relevantFields.length === 0) return;
-                        
-                        // Add field totals
-                        relevantFields.forEach(field => {
-                            const total = data.fieldTotals[field.id]?.total || 0;
-                            totalRow.append(`<td class="text-center">${Number(total)}</td>`);
-                        });
-                    });
-                    
-                    // Add consumption, revenue, cost totals
-                    const totalConsumption = Number(data.summary.totalConsumption);
-                    const totalRevenue = Number(data.summary.totalRevenue);
-                    const totalCostPercentage = totalRevenue > 0 ? ((totalConsumption / totalRevenue) * 100) : 0;
-                    
-                    totalRow.append(`<td class="text-center">${this.formatNumber(totalConsumption)}</td>`);
-                    totalRow.append(`<td class="text-center">${this.formatNumber(totalRevenue)}</td>`);
-                    totalRow.append(`<td class="text-center">${this.formatNumber(totalCostPercentage)}%</td>`);
-                    
-                    tfoot.append(totalRow);
-                    table.append(tfoot);
-                    
-                    // Add table to container
-                    tableContainer.append(table);
-                },
-
-                findRateForField: function(revenueTotals, field) {
-                    // Find the rate for a specific field
-                    for (const key in revenueTotals) {
-                        const rev = revenueTotals[key];
-                        if (rev.customerId === field.customerId && rev.categoryId === field.categoryId) {
-                            return rev.rate;
-                        }
-                    }
-                    return null;
-                },
-
-                formatNumber: function(num) {
-                    return new Intl.NumberFormat('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    }).format(num);
+                    console.warn('DCR module not available yet');
                 }
-            };
-
-            // Initialize the application when DOM is ready
-            $(document).ready(() => {
-                DCR.init();
+            }
+            
+            // Function to initialize Users module
+            function initializeUsers() {
+                console.log('Initializing Users module from dashboard');
+                
+                // Initialize module if it exists
+                if (window.Users && !window.Users.state.initialized) {
+                    console.log('Initializing Users directly');
+                    window.Users.init();
+                } else if (Core.module && Core.module.get('users')) {
+                    console.log('Bootstrapping registered Users module');
+                    Core.module.get('users').init();
+                } else {
+                    console.warn('Users module not available yet');
+                }
+            }
+            
+            // Set up authentication listeners
+            $('#loginForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const username = $('#username').val();
+                const password = $('#password').val();
+                
+                Core.auth.login(username, password)
+                    .then(() => {
+                        $('#loginView').addClass('d-none');
+                        $('#appShell').removeClass('d-none');
+                        $('#usernameDisplay').text(Core.state.user.username);
+                        
+                        // Show admin-only elements if user has admin role
+                        if (Core.auth.hasRole('ADMIN')) {
+                            $('.admin-only').removeClass('d-none');
+                        }
+                        
+                        // Initialize modules
+                        initializeDcr();
+                        initializeUsers();
+                    })
+                    .catch(err => {
+                        $('#loginError').text(err.message || 'Login failed');
+                    });
             });
-
-            // Expose for debugging if needed
-            window.DCR = DCR;
-        })(window, jQuery);
+            
+            // Set up logout
+            $('#logoutBtn').on('click', () => Core.auth.logout());
+            
+            // Set up sidebar toggle for mobile
+            $('#toggleSidebar').on('click', () => $('#sideBar').toggleClass('open'));
+            
+            // Check if already authenticated
+            if (Core.auth.isAuthenticated()) {
+                $('#loginView').addClass('d-none');
+                $('#appShell').removeClass('d-none');
+                $('#usernameDisplay').text(Core.state.user.username);
+                
+                // Show admin-only elements if user has admin role
+                if (Core.auth.hasRole('ADMIN')) {
+                    $('.admin-only').removeClass('d-none');
+                }
+                
+                // Initialize modules for authenticated users
+                initializeDcr();
+                initializeUsers();
+            } else {
+                $('#loginView').removeClass('d-none');
+            }
+        });
     </script>
 </body>
 
