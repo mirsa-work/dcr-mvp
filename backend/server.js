@@ -6,6 +6,7 @@ const authRoute = require('./routes/auth');
 const formSpec = require('./routes/formSpec');
 const dcrRoute = require('./routes/dcr');
 const branchesRoute = require('./routes/branches');
+const reportsRoutes = require('./routes/reports');
 
 const authMw = require('./middleware/auth');
 const role = require('./middleware/roleGuard');
@@ -23,6 +24,8 @@ app.use('/api', branchesRoute);
 app.use('/api', dcrRoute);
 
 app.use('/api', formSpec);
+
+app.use('/api', reportsRoutes);
 
 /* health */
 app.get('/health', (_, res) => res.json({ ok: 1 }));

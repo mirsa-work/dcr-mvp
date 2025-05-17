@@ -185,15 +185,24 @@
                     <h5 class="d-inline-block">Southern Slice</h5>
                 </div>
                 <ul class="nav flex-column">
+                    <!-- DCR Module -->
                     <li class="nav-item">
-                        <a class="nav-link active" href="#">
-                            <i class="bi bi-file-earton-text me-2"></i>Daily Reports
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled" href="#">
-                            <i class="bi bi-folder me-2"></i>Future Reports
-                        </a>
+                        <div class="nav-link mb-2">
+                            <i class="bi bi-clipboard-data me-2"></i>
+                            <span class="fw-bold">DCR</span>
+                        </div>
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" data-bs-toggle="tab" data-bs-target="#dcrTab">
+                                    <i class="bi bi-file-earmark-text me-2"></i>Records
+                                </a>
+                            </li>
+                            <li class="nav-item admin-only d-none">
+                                <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#reports">
+                                    <i class="bi bi-graph-up me-2"></i>Reports
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </nav>
@@ -210,7 +219,7 @@
                         </div>
                         <div class="col">
                             <h5 class="m-0">
-                                <i class="bi bi-clipboard-data me-2"></i>Daily Consumption Reports
+                                <i class="bi bi-clipboard-data me-2"></i><span id="headerTitle">DCR - Records</span>
                             </h5>
                         </div>
                         <div class="col-auto">
@@ -234,41 +243,83 @@
 
                 <!-- Main Content -->
                 <main class="flex-grow-1 p-3 overflow-auto">
-                    <!-- Dashboard View -->
-                    <div id="dashboardView" class="h-100 d-flex flex-column">
-                        <!-- Controls Row -->
-                        <div class="row g-2 g-md-3 mb-3">
-                            <div class="col-12 col-md-5 col-lg-4">
-                                <select id="branchSelect" class="form-select"></select>
-                            </div>
-                            <div class="col-8 col-md-3 col-lg-3">
-                                <input id="monthSelect" type="month" class="form-control">
-                            </div>
-                            <div class="col-4 col-md-2 col-lg-3 d-flex gap-2">
-                                <button id="refreshBtn" class="btn btn-outline-secondary flex-grow-1 text-nowrap">
-                                    <i class="bi bi-arrow-clockwise"></i>
-                                    <span class="d-none d-md-inline"> Refresh</span>
-                                </button>
-                                <button id="newDcrBtn" class="btn btn-success flex-grow-1 text-nowrap">
-                                    <i class="bi bi-plus-circle"></i>
-                                    <span class="d-none d-md-inline"> New</span>
-                                </button>
+                    <!-- Tab Content -->
+                    <div class="tab-content h-100">
+                        <!-- Dashboard View -->
+                        <div id="dcrTab" class="tab-pane fade show active h-100">
+                            <div class="h-100 d-flex flex-column">
+                                <!-- Controls Row -->
+                                <div class="row g-2 g-md-3 mb-3">
+                                    <div class="col-12 col-md-5 col-lg-4">
+                                        <select id="branchSelect" class="form-select"></select>
+                                    </div>
+                                    <div class="col-8 col-md-3 col-lg-3">
+                                        <input id="monthSelect" type="month" class="form-control">
+                                    </div>
+                                    <div class="col-4 col-md-2 col-lg-3 d-flex gap-2">
+                                        <button id="refreshBtn" class="btn btn-outline-secondary flex-grow-1 text-nowrap">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                            <span class="d-none d-md-inline"> Refresh</span>
+                                        </button>
+                                        <button id="newDcrBtn" class="btn btn-success flex-grow-1 text-nowrap">
+                                            <i class="bi bi-plus-circle"></i>
+                                            <span class="d-none d-md-inline"> New</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover" id="dcrTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>DCR #</th>
+                                                <th>Status</th>
+                                                <th style="width:100px">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Table -->
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover" id="dcrTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>DCR #</th>
-                                        <th>Status</th>
-                                        <th style="width:100px">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
+                        <!-- Reports Section -->
+                        <div id="reports" class="tab-pane fade h-100">
+                            <div class="h-100 d-flex flex-column">
+                                <!-- Controls Row -->
+                                <div class="row g-2 g-md-3 mb-3">
+                                    <div class="col-12 col-md-5 col-lg-4">
+                                        <select id="reportBranch" class="form-select" required></select>
+                                    </div>
+                                    <div class="col-8 col-md-3 col-lg-3">
+                                        <input id="reportMonth" type="month" class="form-control" required>
+                                    </div>
+                                    <div class="col-4 col-md-2 col-lg-3">
+                                        <button type="button" id="viewReportBtn" class="btn btn-primary w-100">
+                                            <i class="bi bi-eye"></i>
+                                            <span class="d-none d-md-inline"> View Report</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Report Preview -->
+                                <div id="reportPreview" class="d-none flex-grow-1 d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 id="reportTitle" class="m-0"></h5>
+                                        <button id="downloadPdfBtn" class="btn btn-success btn-sm">
+                                            <i class="bi bi-file-pdf"></i> 
+                                            <span class="d-none d-md-inline">Download PDF</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Dynamic Report Table Container -->
+                                    <div class="table-responsive flex-grow-1">
+                                        <!-- The table will be generated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>
@@ -344,6 +395,7 @@
                     // Views
                     loginView: null,
                     appShell: null,
+                    adminOnlyElements: null,
 
                     // Login form
                     loginForm: null,
@@ -355,6 +407,7 @@
                     toggleSidebarBtn: null,
                     usernameDisplay: null,
                     logoutBtn: null,
+                    headerTitle: null,
 
                     // Dashboard
                     branchSelect: null,
@@ -362,6 +415,14 @@
                     refreshBtn: null,
                     newDcrBtn: null,
                     dcrTable: null,
+
+                    // Reports
+                    reportBranchSelect: null,
+                    reportMonth: null,
+                    viewReportBtn: null,
+                    reportPreview: null,
+                    reportTitle: null,
+                    downloadPdfBtn: null,
 
                     // DCR Modal
                     dcrModal: null,
@@ -387,6 +448,7 @@
                     // Views
                     el.loginView = $('#loginView');
                     el.appShell = $('#appShell');
+                    el.adminOnlyElements = $('.admin-only');
 
                     // Login form
                     el.loginForm = $('#loginForm');
@@ -398,6 +460,7 @@
                     el.toggleSidebarBtn = $('#toggleSidebar');
                     el.usernameDisplay = $('#usernameDisplay');
                     el.logoutBtn = $('#logoutBtn');
+                    el.headerTitle = $('#headerTitle');
 
                     // Dashboard
                     el.branchSelect = $('#branchSelect');
@@ -405,6 +468,14 @@
                     el.refreshBtn = $('#refreshBtn');
                     el.newDcrBtn = $('#newDcrBtn');
                     el.dcrTable = $('#dcrTable');
+
+                    // Reports
+                    el.reportBranchSelect = $('#reportBranch');
+                    el.reportMonth = $('#reportMonth');
+                    el.viewReportBtn = $('#viewReportBtn');
+                    el.reportPreview = $('#reportPreview');
+                    el.reportTitle = $('#reportTitle');
+                    el.downloadPdfBtn = $('#downloadPdfBtn');
 
                     // DCR Modal
                     el.dcrModal = new bootstrap.Modal('#dcrModal');
@@ -434,6 +505,16 @@
                     el.logoutBtn.on('click', (e) => {
                         e.preventDefault();
                         this.handleLogout();
+                    });
+                    
+                    // Tab navigation - update header title
+                    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                        const targetId = $(e.target).attr('data-bs-target');
+                        if (targetId === '#dcrTab') {
+                            $('#headerTitle').text('DCR - Records');
+                        } else if (targetId === '#reports') {
+                            $('#headerTitle').text('DCR - Reports');
+                        }
                     });
 
                     // Dashboard
@@ -469,6 +550,12 @@
                     if (token) {
                         this.state.token = token;
                         this.loadUserFromStorage();
+                        
+                        // Show/hide admin features before showing the app shell
+                        if (this.state.user && this.state.user.role === 'ADMIN') {
+                            this.elements.adminOnlyElements.removeClass('d-none');
+                        }
+                        
                         this.showAppShell();
                         this.bootstrapApplication();
                     } else {
@@ -569,6 +656,11 @@
 
                             // Load initial data
                             this.loadDcrTable();
+
+                            // Initialize reports if admin
+                            if (this.state.user.role === 'ADMIN') {
+                                this.initReports();
+                            }
                         })
                         .catch(error => {
                             this.showToast('Failed to load branches', 'danger');
@@ -958,6 +1050,277 @@
                             this.showToast('Failed to load branch specification', 'danger');
                             console.error('Branch change error:', error);
                         });
+                },
+
+                // Reports functionality
+                initReports: function() {
+                    if (this.state.user.role !== 'ADMIN') {
+                        return;
+                    }
+
+                    const el = this.elements;
+
+                    // Set current month by default
+                    const today = new Date();
+                    const currentMonth = today.toISOString().slice(0, 7);
+                    $('#reportMonth').val(currentMonth);
+
+                    // Populate branch select
+                    this.apiRequest({
+                        url: this.config.endpoints.branches
+                    })
+                    .then(branches => {
+                        $('#reportBranch').html(
+                            branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('')
+                        );
+                    });
+
+                    // Handle report generation
+                    $('#viewReportBtn').on('click', async () => {
+                        const yearMonth = $('#reportMonth').val();
+                        const branchId = $('#reportBranch').val();
+
+                        if (!yearMonth || !branchId) {
+                            this.showToast('Please select branch and month', 'danger');
+                            return;
+                        }
+
+                        try {
+                            const response = await this.apiRequest({
+                                url: `/api/branches/${branchId}/reports/${yearMonth}/data`
+                            });
+                            this.displayReport(response);
+                        } catch (err) {
+                            this.showToast('Failed to generate report', 'danger');
+                            console.error('Report generation error:', err);
+                        }
+                    });
+
+                    // Handle PDF download
+                    el.downloadPdfBtn.on('click', async () => {
+                        const branchId = el.downloadPdfBtn.data('branch');
+                        const yearMonth = el.downloadPdfBtn.data('period');
+
+                        try {
+                            const response = await fetch(
+                                `${this.config.apiBaseUrl}/api/branches/${branchId}/reports/${yearMonth}/pdf`,
+                                {
+                                    headers: { 'Authorization': `Bearer ${this.state.token}` }
+                                }
+                            );
+
+                            if (response.ok) {
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `report-${yearMonth}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                a.remove();
+                            } else {
+                                const error = await response.json();
+                                this.showToast(error.error || 'Failed to download PDF', 'danger');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            this.showToast('Failed to download PDF', 'danger');
+                        }
+                    });
+                },
+
+                displayReport: function(data) {
+                    const el = this.elements;
+
+                    // Show report preview
+                    el.reportPreview.removeClass('d-none');
+
+                    // Set report title
+                    el.reportTitle.text(`${data.branch.name} - ${data.period}`);
+
+                    // Create table header based on branch-specific structure
+                    this.createReportTable(data);
+
+                    // Set download PDF button
+                    el.downloadPdfBtn.data('branch', data.branch.id).data('period', data.period);
+                },
+
+                createReportTable: function(data) {
+                    const tableContainer = $('#reportPreview .table-responsive');
+                    tableContainer.empty();
+                    
+                    // Check if we have any daily data
+                    if (data.dailyData.length === 0) {
+                        tableContainer.html('<div class="alert alert-info mt-3">No accepted DCRs found for this month. Please select a different month or ensure DCRs have been approved.</div>');
+                        return;
+                    }
+                    
+                    // Create table element
+                    const table = $('<table class="table table-sm table-bordered table-hover" id="reportTable"></table>');
+                    
+                    // Create the header
+                    const thead = $('<thead class="table-light"></thead>');
+                    
+                    // First header row - Group headers
+                    const headerRow1 = $('<tr></tr>');
+                    headerRow1.append('<th rowspan="2">Date</th>');
+                    headerRow1.append('<th rowspan="2">Day</th>');
+                    
+                    // Add group columns
+                    data.groups.forEach(group => {
+                        // Skip groups with no fields or system fields
+                        const relevantFields = group.fields.filter(f => 
+                            f.key !== 'date' && f.key !== 'consumption' && 
+                            f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                        
+                        if (relevantFields.length === 0) return;
+                        
+                        headerRow1.append(`<th colspan="${relevantFields.length}" class="text-center">${group.label}</th>`);
+                    });
+                    
+                    // Add consumption/revenue columns
+                    headerRow1.append('<th rowspan="2" class="text-center">Consumption</th>');
+                    headerRow1.append('<th rowspan="2" class="text-center">Total Revenue</th>');
+                    headerRow1.append('<th rowspan="2" class="text-center">Cost %</th>');
+                    
+                    // Second header row - Field names
+                    const headerRow2 = $('<tr></tr>');
+                    
+                    // Add field column headers
+                    data.groups.forEach(group => {
+                        // Skip groups with no fields or system fields
+                        const relevantFields = group.fields.filter(f => 
+                            f.key !== 'date' && f.key !== 'consumption' && 
+                            f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                        
+                        if (relevantFields.length === 0) return;
+                        
+                        // Add each field header
+                        relevantFields.forEach(field => {
+                            // Add rate if available
+                            const rate = this.findRateForField(data.revenueTotals, field);
+                            const rateText = rate ? `<br>${rate.toFixed(2)}` : '';
+                            headerRow2.append(`<th class="text-center">${field.label}${rateText}</th>`);
+                        });
+                    });
+                    
+                    // Add headers to table
+                    thead.append(headerRow1);
+                    thead.append(headerRow2);
+                    table.append(thead);
+                    
+                    // Create table body
+                    const tbody = $('<tbody></tbody>');
+                    
+                    // Add day rows
+                    const colorMap = {
+                        'SUN': 'text-success',
+                        'MON': 'text-danger',
+                        'TUE': 'text-success',
+                        'WED': 'text-warning',
+                        'THU': 'text-primary',
+                        'FRI': 'text-danger',
+                        'SAT': 'text-secondary'
+                    };
+                    
+                    data.dailyData.forEach((day, index) => {
+                        const rowClass = index % 2 === 0 ? '' : 'table-light';
+                        const dayColorClass = colorMap[day.day] || '';
+                        const date = new Date(day.date);
+                        const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear().toString().slice(2)}`;
+                        
+                        const row = $(`<tr class="${rowClass}"></tr>`);
+                        
+                        // Add date and day
+                        row.append(`<td>${formattedDate}</td>`);
+                        row.append(`<td class="${dayColorClass} fw-bold">${day.day}</td>`);
+                        
+                        // Add group data
+                        data.groups.forEach(group => {
+                            // Skip groups with no fields or system fields
+                            const relevantFields = group.fields.filter(f => 
+                                f.key !== 'date' && f.key !== 'consumption' && 
+                                f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                            
+                            if (relevantFields.length === 0) return;
+                            
+                            // Add field values
+                            relevantFields.forEach(field => {
+                                const value = day.groups[group.id]?.fields[field.key]?.value || 0;
+                                row.append(`<td class="text-center">${Number(value)}</td>`);
+                            });
+                        });
+                        
+                        // Add consumption, revenue, cost
+                        const consumption = Number(day.consumption);
+                        const revenue = Number(day.revenue);
+                        const costPercentage = revenue > 0 ? ((consumption / revenue) * 100) : 0;
+                        
+                        row.append(`<td class="text-center">${this.formatNumber(consumption)}</td>`);
+                        row.append(`<td class="text-center">${this.formatNumber(revenue)}</td>`);
+                        row.append(`<td class="text-center">${this.formatNumber(costPercentage)}%</td>`);
+                        
+                        tbody.append(row);
+                    });
+                    
+                    table.append(tbody);
+                    
+                    // Create footer with totals
+                    const tfoot = $('<tfoot></tfoot>');
+                    const totalRow = $('<tr class="fw-bold"></tr>');
+                    
+                    // Date and day total
+                    totalRow.append('<td colspan="2" class="text-center">TOTAL</td>');
+                    
+                    // Group totals
+                    data.groups.forEach(group => {
+                        // Skip groups with no fields or system fields
+                        const relevantFields = group.fields.filter(f => 
+                            f.key !== 'date' && f.key !== 'consumption' && 
+                            f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                        
+                        if (relevantFields.length === 0) return;
+                        
+                        // Add field totals
+                        relevantFields.forEach(field => {
+                            const total = data.fieldTotals[field.id]?.total || 0;
+                            totalRow.append(`<td class="text-center">${Number(total)}</td>`);
+                        });
+                    });
+                    
+                    // Add consumption, revenue, cost totals
+                    const totalConsumption = Number(data.summary.totalConsumption);
+                    const totalRevenue = Number(data.summary.totalRevenue);
+                    const totalCostPercentage = totalRevenue > 0 ? ((totalConsumption / totalRevenue) * 100) : 0;
+                    
+                    totalRow.append(`<td class="text-center">${this.formatNumber(totalConsumption)}</td>`);
+                    totalRow.append(`<td class="text-center">${this.formatNumber(totalRevenue)}</td>`);
+                    totalRow.append(`<td class="text-center">${this.formatNumber(totalCostPercentage)}%</td>`);
+                    
+                    tfoot.append(totalRow);
+                    table.append(tfoot);
+                    
+                    // Add table to container
+                    tableContainer.append(table);
+                },
+
+                findRateForField: function(revenueTotals, field) {
+                    // Find the rate for a specific field
+                    for (const key in revenueTotals) {
+                        const rev = revenueTotals[key];
+                        if (rev.customerId === field.customerId && rev.categoryId === field.categoryId) {
+                            return rev.rate;
+                        }
+                    }
+                    return null;
+                },
+
+                formatNumber: function(num) {
+                    return new Intl.NumberFormat('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(num);
                 }
             };
 
