@@ -13,7 +13,7 @@
                 dcr: '/api/dcr',
                 formSpec: '/api/form-spec',
                 reports: '/api/branches/{branchId}/reports/{yearMonth}/data',
-                reportPdf: '/api/branches/{branchId}/reports/{yearMonth}/pdf'
+                reportExcel: '/api/branches/{branchId}/reports/{yearMonth}/excel'
             },
             selectors: {
                 views: {
@@ -138,7 +138,7 @@
             $(document).on('click', s.reports.downloadButton, () => {
                 const branchId = $(s.reports.downloadButton).data('branch');
                 const yearMonth = $(s.reports.downloadButton).data('period');
-                this.downloadReportPdf(branchId, yearMonth);
+                this.downloadReportExcel(branchId, yearMonth);
             });
         },
 
@@ -633,15 +633,18 @@
             // Set report title
             $(s.title).text(`${data.branch.name} - ${data.period}`);
 
-            // Create table
-            this.createReportTable(data);
+            // Create tables
+            this.createReportTables(data);
 
-            // Set download PDF button
+            // Set download Excel button
             $(s.downloadButton).data('branch', data.branch.id).data('period', data.period);
+
+            // Update button text and icon for Excel
+            $(s.downloadButton).html('<i class="bi bi-file-excel"></i> <span class="d-none d-md-inline">Download Excel</span>');
         },
 
-        // Create report table
-        createReportTable: function(data) {
+        // Create report tables
+        createReportTables: function(data) {
             const tableContainer = $(this.config.selectors.reports.tableContainer);
             tableContainer.empty();
             
@@ -651,8 +654,17 @@
                 return;
             }
             
+            // Create the Cost/Revenue table
+            this.createCostRevenueTable(data, tableContainer);
+            
+            // Create the Stock table
+            this.createStockTable(data, tableContainer);
+        },
+
+        // Create Cost/Revenue table
+        createCostRevenueTable: function(data, container) {
             // Create table element
-            const table = $('<table class="table table-sm table-bordered table-hover" id="reportTable"></table>');
+            const table = $('<table class="table table-sm table-bordered table-hover mb-4" id="costRevenueTable"></table>');
             
             // Create the header
             const thead = $('<thead class="table-light"></thead>');
@@ -662,12 +674,13 @@
             headerRow1.append('<th rowspan="2">Date</th>');
             headerRow1.append('<th rowspan="2">Day</th>');
             
-            // Add group columns
+            // Add group columns (excluding Stock group)
             data.groups.forEach(group => {
-                // Skip groups with no fields or system fields
+                // Skip Stock group and groups with no fields or system fields
+                if (group.label === 'Stock') return;
+                
                 const relevantFields = group.fields.filter(f => 
-                    f.key !== 'date' && f.key !== 'consumption' && 
-                    f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                    f.key !== 'date' && f.key !== 'consumption');
                 
                 if (relevantFields.length === 0) return;
                 
@@ -682,12 +695,13 @@
             // Second header row - Field names
             const headerRow2 = $('<tr></tr>');
             
-            // Add field column headers
+            // Add field column headers (excluding Stock fields)
             data.groups.forEach(group => {
-                // Skip groups with no fields or system fields
+                // Skip Stock group and groups with no fields or system fields
+                if (group.label === 'Stock') return;
+                
                 const relevantFields = group.fields.filter(f => 
-                    f.key !== 'date' && f.key !== 'consumption' && 
-                    f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                    f.key !== 'date' && f.key !== 'consumption');
                 
                 if (relevantFields.length === 0) return;
                 
@@ -731,12 +745,13 @@
                 row.append(`<td>${formattedDate}</td>`);
                 row.append(`<td class="${dayColorClass} fw-bold">${day.day}</td>`);
                 
-                // Add group data
+                // Add group data (excluding Stock)
                 data.groups.forEach(group => {
-                    // Skip groups with no fields or system fields
+                    // Skip Stock group and groups with no fields or system fields
+                    if (group.label === 'Stock') return;
+                    
                     const relevantFields = group.fields.filter(f => 
-                        f.key !== 'date' && f.key !== 'consumption' && 
-                        f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                        f.key !== 'date' && f.key !== 'consumption');
                     
                     if (relevantFields.length === 0) return;
                     
@@ -768,19 +783,20 @@
             // Date and day total
             totalRow.append('<td colspan="2" class="text-center">TOTAL</td>');
             
-            // Group totals
+            // Group totals (excluding Stock)
             data.groups.forEach(group => {
-                // Skip groups with no fields or system fields
+                // Skip Stock group and groups with no fields or system fields
+                if (group.label === 'Stock') return;
+                
                 const relevantFields = group.fields.filter(f => 
-                    f.key !== 'date' && f.key !== 'consumption' && 
-                    f.key !== 'opening_stock' && f.key !== 'closing_stock');
+                    f.key !== 'date' && f.key !== 'consumption');
                 
                 if (relevantFields.length === 0) return;
                 
                 // Add field totals
                 relevantFields.forEach(field => {
                     const total = data.fieldTotals[field.id]?.total || 0;
-                    totalRow.append(`<td class="text-center">${Number(total)}</td>`);
+                    totalRow.append(`<td class="text-center">${Core.ui.formatNumber(Number(total))}</td>`);
                 });
             });
             
@@ -797,7 +813,107 @@
             table.append(tfoot);
             
             // Add table to container
-            tableContainer.append(table);
+            container.append('<h5 class="mt-3 mb-2">Cost & Revenue</h5>');
+            container.append(table);
+        },
+
+        // Create Stock table
+        createStockTable: function(data, container) {
+            // Find the Stock group
+            const stockGroup = data.groups.find(group => group.label === 'Stock');
+            
+            // If no Stock group found, return
+            if (!stockGroup) return;
+            
+            // Get the stock fields
+            const stockFields = stockGroup.fields.filter(f => 
+                f.key !== 'date' && f.key !== 'consumption' &&
+                ['purchase', 'purchase_rtn', 'transfer_in', 'transfer_out', 'opening_stock', 'closing_stock'].includes(f.key));
+            
+            // If no stock fields, return
+            if (stockFields.length === 0) return;
+            
+            // Create table element
+            const table = $('<table class="table table-sm table-bordered table-hover" id="stockTable"></table>');
+            
+            // Create the header
+            const thead = $('<thead class="table-light"></thead>');
+            
+            // First header row - Group header
+            const headerRow1 = $('<tr></tr>');
+            headerRow1.append('<th rowspan="2">Date</th>');
+            headerRow1.append('<th rowspan="2">Day</th>');
+            headerRow1.append(`<th colspan="${stockFields.length}" class="text-center">Stock</th>`);
+            
+            // Second header row - Field names
+            const headerRow2 = $('<tr></tr>');
+            
+            // Add each field header
+            stockFields.forEach(field => {
+                headerRow2.append(`<th class="text-center">${field.label}</th>`);
+            });
+            
+            // Add headers to table
+            thead.append(headerRow1);
+            thead.append(headerRow2);
+            table.append(thead);
+            
+            // Create table body
+            const tbody = $('<tbody></tbody>');
+            
+            // Add day rows
+            const colorMap = {
+                'SUN': 'text-success',
+                'MON': 'text-danger',
+                'TUE': 'text-success',
+                'WED': 'text-warning',
+                'THU': 'text-primary',
+                'FRI': 'text-danger',
+                'SAT': 'text-secondary'
+            };
+            
+            data.dailyData.forEach((day, index) => {
+                const rowClass = index % 2 === 0 ? '' : 'table-light';
+                const dayColorClass = colorMap[day.day] || '';
+                const date = new Date(day.date);
+                const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear().toString().slice(2)}`;
+                
+                const row = $(`<tr class="${rowClass}"></tr>`);
+                
+                // Add date and day
+                row.append(`<td>${formattedDate}</td>`);
+                row.append(`<td class="${dayColorClass} fw-bold">${day.day}</td>`);
+                
+                // Add stock field values
+                stockFields.forEach(field => {
+                    const value = day.groups[stockGroup.id]?.fields[field.key]?.value || 0;
+                    row.append(`<td class="text-center">${Core.ui.formatNumber(Number(value))}</td>`);
+                });
+                
+                tbody.append(row);
+            });
+            
+            table.append(tbody);
+            
+            // Create footer with totals
+            const tfoot = $('<tfoot></tfoot>');
+            const totalRow = $('<tr class="fw-bold"></tr>');
+            
+            // Date and day total
+            totalRow.append('<td colspan="2" class="text-center">TOTAL</td>');
+            
+            // Add stock field totals
+            stockFields.forEach(field => {
+                const total = data.fieldTotals[field.id]?.total || 0;
+                totalRow.append(`<td class="text-center">${Core.ui.formatNumber(Number(total))}</td>`);
+            });
+            
+            tfoot.append(totalRow);
+            table.append(tfoot);
+            
+            // Add table to container
+            container.append('<h5 class="mt-4 mb-2">Stock</h5>');
+            container.append(table);
         },
 
         // Find rate for field
@@ -814,11 +930,13 @@
             return null;
         },
 
-        // Download report PDF
-        downloadReportPdf: function(branchId, yearMonth) {
-            const url = this.config.endpoints.reportPdf
+        // Download report as Excel
+        downloadReportExcel: function(branchId, yearMonth) {
+            const url = this.config.endpoints.reportExcel
                 .replace('{branchId}', branchId)
                 .replace('{yearMonth}', yearMonth);
+            
+            console.log('Downloading Excel report from:', `${Core.config.apiBaseUrl}${url}`);
             
             // Use fetch API for direct download
             fetch(`${Core.config.apiBaseUrl}${url}`, {
@@ -829,7 +947,7 @@
                     return response.blob();
                 } else {
                     return response.json().then(error => {
-                        throw new Error(error.error || 'Failed to download PDF');
+                        throw new Error(error.error || 'Failed to download Excel');
                     });
                 }
             })
@@ -837,35 +955,23 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `report-${yearMonth}.pdf`;
+                a.download = `report-${yearMonth}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 a.remove();
+                
+                // Show success message
+                Core.ui.showToast('Excel report downloaded successfully');
             })
             .catch(err => {
                 console.error(err);
-                Core.ui.showToast(err.message || 'Failed to download PDF', 'danger');
+                Core.ui.showToast(err.message || 'Failed to download Excel report', 'danger');
             });
         }
     };
 
-    // Register the DCR module with Core
-    if (window.Core && window.Core.module) {
-        console.log('Registering DCR module with Core (initial load)');
-        Core.module.register('dcr', DCR);
-    } else {
-        console.log('Core module not yet available, exposing DCR globally');
-        // Expose the module globally for later registration
-        window.DCR = DCR;
-        
-        // Initialize when document is ready
-        $(document).ready(() => {
-            if (window.Core && window.Core.module) {
-                console.log('Registering DCR module with Core (delayed)');
-                Core.module.register('dcr', DCR);
-            }
-        });
-    }
+    // Expose the module globally for later registration
+    window.DCR = DCR;
 
 })(window, jQuery, window.Core); 

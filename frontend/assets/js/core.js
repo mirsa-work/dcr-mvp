@@ -20,20 +20,50 @@
         state: {
             token: null,
             user: null,
-            modules: {}
+            modules: {},
+            modulesInitialized: false
         },
 
         // Initialize the core application
         init: function() {
             this.checkAuthentication();
             
-            // Initialize any registered modules 
-            $(document).ready(() => {
-                if (window.DCR) {
-                    console.log('Registering DCR module');
-                    this.module.register('dcr', window.DCR);
-                }
-            });
+            if (window.DCR) {
+                console.log('Registering DCR module');
+                this.module.register('dcr', window.DCR);
+            }
+            
+            if (window.Users) {
+                console.log('Registering Users module');
+                this.module.register('users', window.Users);
+            }
+
+            // Ensure modules are initialized only after document is ready
+            this.initializeAllModules();
+        },
+        
+        // Central function to initialize all modules after document is ready
+        initializeAllModules: function() {
+            if (this.state.modulesInitialized) {
+                console.log('Modules already initialized');
+                return;
+            }
+            
+            console.log('Initializing all modules centrally');
+            
+            // Only initialize modules if user is authenticated
+            if (this.auth.isAuthenticated()) {
+                // Initialize each registered module
+                Object.keys(this.state.modules).forEach(moduleName => {
+                    const module = this.state.modules[moduleName];
+                    console.log(`Initializing module: ${moduleName}`);
+                    if (module.init && typeof module.init === 'function') {
+                        module.init();
+                    }
+                });
+                
+                this.state.modulesInitialized = true;
+            }
         },
 
         // Authentication functions
@@ -48,6 +78,8 @@
                         // Store credentials
                         localStorage.setItem(Core.config.localStorageKeys.token, response.token);
                         localStorage.setItem(Core.config.localStorageKeys.user, JSON.stringify(response.user));
+                        
+                        window.location.reload();
 
                         return response;
                     });
@@ -213,11 +245,7 @@
             register: function(name, module) {
                 Core.state.modules[name] = module;
                 
-                // Initialize module
-                if (module.init && typeof module.init === 'function') {
-                    module.init();
-                }
-                
+                // Don't auto-initialize, this will be done centrally
                 return module;
             },
 

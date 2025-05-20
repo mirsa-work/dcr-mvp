@@ -315,8 +315,8 @@
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h5 id="reportTitle" class="m-0"></h5>
                                         <button id="downloadPdfBtn" class="btn btn-success btn-sm">
-                                            <i class="bi bi-file-pdf"></i> 
-                                            <span class="d-none d-md-inline">Download PDF</span>
+                                            <i class="bi bi-file-excel"></i> 
+                                            <span class="d-none d-md-inline">Download Excel</span>
                                         </button>
                                     </div>
                                     
@@ -433,38 +433,6 @@
             // Set API base URL if needed (can also be set in .env)
             Core.config.apiBaseUrl = '';
             
-            // Function to initialize DCR module
-            function initializeDcr() {
-                console.log('Initializing DCR module from dashboard');
-                
-                // Initialize module if it exists
-                if (window.DCR && !window.DCR.state.initialized) {
-                    console.log('Initializing DCR directly');
-                    window.DCR.init();
-                } else if (Core.module && Core.module.get('dcr')) {
-                    console.log('Bootstrapping registered DCR module');
-                    Core.module.get('dcr').bootstrapUI();
-                    } else {
-                    console.warn('DCR module not available yet');
-                }
-            }
-            
-            // Function to initialize Users module
-            function initializeUsers() {
-                console.log('Initializing Users module from dashboard');
-                
-                // Initialize module if it exists
-                if (window.Users && !window.Users.state.initialized) {
-                    console.log('Initializing Users directly');
-                    window.Users.init();
-                } else if (Core.module && Core.module.get('users')) {
-                    console.log('Bootstrapping registered Users module');
-                    Core.module.get('users').init();
-                } else {
-                    console.warn('Users module not available yet');
-                }
-            }
-            
             // Set up authentication listeners
             $('#loginForm').on('submit', function(e) {
                 e.preventDefault();
@@ -482,10 +450,6 @@
                         if (Core.auth.hasRole('ADMIN')) {
                             $('.admin-only').removeClass('d-none');
                         }
-                        
-                        // Initialize modules
-                        initializeDcr();
-                        initializeUsers();
                     })
                     .catch(err => {
                         $('#loginError').text(err.message || 'Login failed');
@@ -508,10 +472,6 @@
                 if (Core.auth.hasRole('ADMIN')) {
                     $('.admin-only').removeClass('d-none');
                 }
-                
-                // Initialize modules for authenticated users
-                initializeDcr();
-                initializeUsers();
             } else {
                 $('#loginView').removeClass('d-none');
             }

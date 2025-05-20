@@ -103,6 +103,12 @@ class DcrModule extends BaseModule {
             [authMiddleware, roleGuard('ADMIN')],
             asyncHandler(this.controllers.reports.getReportPdf)
         );
+
+        this.get(
+            `${basePath}/branches/:branchId/reports/:yearMonth/excel`,
+            [authMiddleware, roleGuard('ADMIN')],
+            asyncHandler(this.controllers.reports.getReportExcel)
+        );
     }
 }
 

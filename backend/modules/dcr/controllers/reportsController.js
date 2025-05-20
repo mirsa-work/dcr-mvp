@@ -5,6 +5,7 @@
 const db = require('../../../db');
 const { ApiError } = require('../../../utils/core');
 const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
 
 /**
  * Get form specification for a branch using relational tables
@@ -411,7 +412,288 @@ async function getReportDataInternal(branchId, yearMonth) {
     return reportData;
 }
 
+/**
+ * Generate Excel report for a branch and period
+ */
+async function getReportExcel(req, res) {
+    const { branchId, yearMonth } = req.params;
+    
+    try {
+        // Get report data (reuse the same logic from getReportData)
+        const data = await getReportDataInternal(branchId, yearMonth);
+        
+        // Create a new workbook
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Southern Slice ERP';
+        workbook.created = new Date();
+        
+        // Create Cost & Revenue worksheet
+        const costRevenueSheet = workbook.addWorksheet('Cost & Revenue');
+        
+        // Get customer information and structure
+        const stockGroup = data.groups.find(g => g.label === 'Stock');
+        const nonStockGroups = data.groups.filter(g => g.label !== 'Stock');
+        
+        // Get a map of all customers to their fields/categories
+        const customerMap = {};
+        
+        nonStockGroups.forEach(group => {
+            group.fields.forEach(field => {
+                if (field.key !== 'date' && field.key !== 'consumption' && field.customerName) {
+                    if (!customerMap[field.customerName]) {
+                        customerMap[field.customerName] = [];
+                    }
+                    customerMap[field.customerName].push({
+                        field: field,
+                        groupId: group.id
+                    });
+                }
+            });
+        });
+        
+        // Define Cost % title row that spans all columns
+        costRevenueSheet.mergeCells('A1:M1');
+        const titleCell = costRevenueSheet.getCell('A1');
+        titleCell.value = 'Cost %';
+        titleCell.font = { size: 16, bold: true };
+        titleCell.alignment = { horizontal: 'center' };
+        
+        // Define the columns structure - start with Date and Day
+        const columns = [
+            { header: 'Date', key: 'date', width: 12 },
+            { header: 'Day', key: 'day', width: 10 },
+        ];
+        
+        // Track column merges for customer headers
+        const customerMerges = [];
+        let colIndex = 2; // Start after Date and Day columns
+        
+        // Add columns for each customer
+        Object.keys(customerMap).forEach(customerName => {
+            const customerStart = colIndex;
+            const customerFields = customerMap[customerName];
+            
+            // Add columns for each field under this customer
+            customerFields.forEach(fieldInfo => {
+                columns.push({
+                    header: fieldInfo.field.categoryName || fieldInfo.field.label,
+                    key: `${customerName}_${fieldInfo.field.key}`,
+                    width: 12
+                });
+                colIndex++;
+            });
+            
+            // If customer has multiple columns, create a merged header
+            if (colIndex - customerStart > 1) {
+                const startCol = getExcelColumn(customerStart + 1); // +1 for Excel's 1-based columns
+                const endCol = getExcelColumn(colIndex);
+                customerMerges.push({
+                    customer: customerName,
+                    range: `${startCol}2:${endCol}2`
+                });
+            }
+        });
+        
+        // Add consumption, revenue and cost columns
+        columns.push(
+            { header: 'Consumption', key: 'consumption', width: 15 },
+            { header: 'Total Revenue', key: 'revenue', width: 15 },
+            { header: 'Cost %', key: 'cost', width: 12 }
+        );
+        
+        // Set columns on the sheet
+        costRevenueSheet.columns = columns;
+        
+        // Add customer headers in row 2
+        customerMerges.forEach(merge => {
+            costRevenueSheet.mergeCells(merge.range);
+            const cell = costRevenueSheet.getCell(merge.range.split(':')[0]);
+            cell.value = merge.customer;
+            cell.font = { bold: true };
+            cell.alignment = { horizontal: 'center' };
+        });
+        
+        // Style headers
+        costRevenueSheet.getRow(3).font = { bold: true };
+        costRevenueSheet.getRow(3).alignment = { horizontal: 'center' };
+        
+        // Add data rows
+        data.dailyData.forEach(day => {
+            const rowData = {
+                date: new Date(day.date),
+                day: day.day,
+                consumption: day.consumption,
+                revenue: day.revenue,
+                cost: day.revenue > 0 ? (day.consumption / day.revenue) * 100 : 0
+            };
+            
+            // Add values for each customer/field
+            Object.keys(customerMap).forEach(customerName => {
+                customerMap[customerName].forEach(fieldInfo => {
+                    const groupId = fieldInfo.groupId;
+                    const fieldKey = fieldInfo.field.key;
+                    
+                    // Get the value for this field from the day data
+                    const value = day.groups[groupId]?.fields[fieldKey]?.value || 0;
+                    rowData[`${customerName}_${fieldKey}`] = value;
+                });
+            });
+            
+            costRevenueSheet.addRow(rowData);
+        });
+        
+        // Add totals row
+        const totalRow = {
+            date: 'TOTAL',
+            day: '',
+            consumption: data.summary.totalConsumption,
+            revenue: data.summary.totalRevenue,
+            cost: data.summary.totalRevenue > 0 ? 
+                (data.summary.totalConsumption / data.summary.totalRevenue) * 100 : 0
+        };
+        
+        // Add totals for each customer/field
+        Object.keys(customerMap).forEach(customerName => {
+            customerMap[customerName].forEach(fieldInfo => {
+                const field = fieldInfo.field;
+                const total = data.fieldTotals[field.id]?.total || 0;
+                totalRow[`${customerName}_${field.key}`] = total;
+            });
+        });
+        
+        costRevenueSheet.addRow(totalRow);
+        
+        // Style the totals row
+        const lastRow = costRevenueSheet.rowCount;
+        costRevenueSheet.getRow(lastRow).font = { bold: true };
+        
+        // Apply number formats
+        for (let i = 4; i <= lastRow; i++) {
+            // Format date cells
+            const dateCell = costRevenueSheet.getCell(`A${i}`);
+            if (dateCell.value instanceof Date) {
+                dateCell.numFmt = 'dd-mm-yy';
+            }
+            
+            // Format number columns - get column count from columns array
+            for (let j = 3; j <= columns.length - 1; j++) {
+                const cell = costRevenueSheet.getCell(`${getExcelColumn(j)}${i}`);
+                cell.numFmt = '#,##0.00';
+            }
+            
+            // Format percentage column (last column)
+            const costCell = costRevenueSheet.getCell(`${getExcelColumn(columns.length)}${i}`);
+            costCell.numFmt = '0.00"%"';
+        }
+        
+        // Helper function to convert column index to Excel column letter
+        function getExcelColumn(index) {
+            let column = '';
+            while (index > 0) {
+                const remainder = (index - 1) % 26;
+                column = String.fromCharCode(65 + remainder) + column;
+                index = Math.floor((index - 1) / 26);
+            }
+            return column;
+        }
+        
+        // Create Stock worksheet if Stock group exists
+        if (stockGroup) {
+            const stockSheet = workbook.addWorksheet('Stock');
+            
+            // Add title
+            stockSheet.mergeCells('A1:H1');
+            const stockTitleCell = stockSheet.getCell('A1');
+            stockTitleCell.value = `${data.branch.name} - ${data.period} (Stock)`;
+            stockTitleCell.font = { size: 16, bold: true };
+            stockTitleCell.alignment = { horizontal: 'center' };
+            
+            // Stock headers
+            const stockHeaders = [
+                { header: 'Date', key: 'date', width: 12 },
+                { header: 'Day', key: 'day', width: 10 }
+            ];
+            
+            // Add stock fields
+            const stockFields = stockGroup.fields.filter(f => 
+                f.key !== 'date' && f.key !== 'consumption');
+            
+            stockFields.forEach(field => {
+                stockHeaders.push({
+                    header: field.label,
+                    key: field.key,
+                    width: 15
+                });
+            });
+            
+            stockSheet.columns = stockHeaders;
+            
+            // Style the header row
+            stockSheet.getRow(2).font = { bold: true };
+            stockSheet.getRow(2).alignment = { horizontal: 'center' };
+            
+            // Add data rows
+            data.dailyData.forEach(day => {
+                const rowData = {
+                    date: new Date(day.date),
+                    day: day.day
+                };
+                
+                // Add stock values
+                stockFields.forEach(field => {
+                    rowData[field.key] = day.groups[stockGroup.id]?.fields[field.key]?.value || 0;
+                });
+                
+                stockSheet.addRow(rowData);
+            });
+            
+            // Add totals row
+            const stockTotalRow = {
+                date: 'TOTAL',
+                day: ''
+            };
+            
+            stockFields.forEach(field => {
+                const total = data.fieldTotals[field.id]?.total || 0;
+                stockTotalRow[field.key] = total;
+            });
+            
+            stockSheet.addRow(stockTotalRow);
+            
+            // Style the totals row
+            const stockLastRow = stockSheet.rowCount;
+            stockSheet.getRow(stockLastRow).font = { bold: true };
+            
+            // Apply number formats
+            for (let i = 3; i <= stockLastRow; i++) {
+                // Format date cells
+                const dateCell = stockSheet.getCell(`A${i}`);
+                if (dateCell.value instanceof Date) {
+                    dateCell.numFmt = 'dd-mm-yy';
+                }
+                
+                // Format number columns
+                for (let j = 3; j <= stockHeaders.length; j++) {
+                    stockSheet.getCell(`${getExcelColumn(j)}${i}`).numFmt = '#,##0.00';
+                }
+            }
+        }
+        
+        // Set response headers
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=report-${yearMonth}.xlsx`);
+        
+        // Write to response
+        await workbook.xlsx.write(res);
+        
+    } catch (err) {
+        console.error('Excel report error:', err);
+        throw new ApiError(err.message || 'Failed to generate Excel report', 500);
+    }
+}
+
 module.exports = {
     getReportData,
-    getReportPdf
+    getReportPdf,
+    getReportExcel
 }; 

@@ -46,6 +46,12 @@
 
         // Initialize the Users module
         init: function() {
+            // Only initialize once
+            if (this.state.initialized) {
+                console.log('Users module already initialized, skipping');
+                return this;
+            }
+
             console.log('Users module initializing');
             this.createUIElements();
             this.setupEventListeners();
@@ -68,89 +74,6 @@
             console.log('Reset password modal exists:', $(this.config.selectors.modals.resetPassword).length > 0);
             console.log('Change password button exists:', $(this.config.selectors.buttons.openChangePassword).length > 0);
             console.log('Reset password button exists:', $(this.config.selectors.buttons.openResetPassword).length > 0);
-        },
-        
-        // Inject change password modal
-        injectChangePasswordModal: function() {
-            const modal = `
-                <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Change Password</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="changePasswordForm">
-                                    <div class="mb-3">
-                                        <label for="currentPassword" class="form-label">Current Password</label>
-                                        <input type="password" class="form-control" id="currentPassword" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="newPassword" class="form-label">New Password</label>
-                                        <input type="password" class="form-control" id="newPassword" required minlength="6">
-                                        <div class="form-text">Password must be at least 6 characters long</div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                                        <input type="password" class="form-control" id="confirmPassword" required>
-                                    </div>
-                                    <div id="changePasswordError" class="text-danger d-none mb-3"></div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" id="changePasswordSubmitBtn" class="btn btn-primary">Change Password</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            $('body').append(modal);
-        },
-        
-        // Inject reset password modal (admin only)
-        injectResetPasswordModal: function() {
-            const modal = `
-                <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Reset User Password</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="resetPasswordForm">
-                                    <div class="mb-3">
-                                        <label for="resetUserSelect" class="form-label">Select User</label>
-                                        <select class="form-select" id="resetUserSelect" required></select>
-                                    </div>
-                                    <div id="generatedPasswordContainer" class="mb-3 d-none">
-                                        <label for="generatedPassword" class="form-label">Generated Password</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="generatedPassword" readonly>
-                                            <button class="btn btn-outline-secondary" type="button" id="copyPasswordBtn">
-                                                <i class="bi bi-clipboard"></i>
-                                            </button>
-                                        </div>
-                                        <div class="form-text text-warning">
-                                            Please copy this password and provide it to the user. This is the only time it will be displayed.
-                                        </div>
-                                    </div>
-                                    <div id="resetPasswordError" class="text-danger d-none mb-3"></div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" id="resetPasswordSubmitBtn" class="btn btn-primary">Reset Password</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            $('body').append(modal);
         },
         
         // Add navigation buttons to user dropdown
@@ -390,34 +313,8 @@
         }
     };
 
-    // Register the Users module with Core
-    if (window.Core && window.Core.module) {
-        console.log('Registering Users module with Core (initial load)');
-        Core.module.register('users', Users);
-        // Auto-initialize the module
-        setTimeout(() => {
-            if (Core.auth.isAuthenticated()) {
-                Users.init();
-            }
-        }, 500);
-    } else {
-        console.log('Core module not yet available, exposing Users globally');
-        // Expose the module globally for later registration
-        window.Users = Users;
-        
-        // Initialize when document is ready
-        $(document).ready(() => {
-            if (window.Core && window.Core.module) {
-                console.log('Registering Users module with Core (delayed)');
-                Core.module.register('users', Users);
-                // Auto-initialize after delay
-                setTimeout(() => {
-                    if (Core.auth.isAuthenticated()) {
-                        Users.init();
-                    }
-                }, 500);
-            }
-        });
-    }
+    // Expose the module globally for later registration
+    window.Users = Users;
+
 
 })(window, jQuery, window.Core); 
