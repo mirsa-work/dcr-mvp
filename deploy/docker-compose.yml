@@ -35,13 +35,15 @@ services:
     depends_on: [ db ]
 
   ui:
-    image: nginx:1.27-alpine
+    build:
+      context: ../frontend/vue-frontend
+      dockerfile: Dockerfile
     container_name: dcr_ui
     volumes:
-      - ../frontend:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "8080:80" # browser hits http://localhost:8080
+    depends_on: [ api ]
 
 volumes:
   db_data:

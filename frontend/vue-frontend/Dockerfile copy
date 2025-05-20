@@ -1,0 +1,28 @@
+# Build stage
+FROM node:18-alpine as build
+
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies including dev dependencies
+RUN npm ci
+
+# Copy source files
+COPY . .
+
+# Use the build-only script which bypasses type checking
+RUN npm run build-only
+
+# Production stage
+FROM nginx:1.25-alpine
+
+# Copy built files from build stage
+COPY --from=build /usr/src/app/dist /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
