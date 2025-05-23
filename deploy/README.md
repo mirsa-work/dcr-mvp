@@ -46,4 +46,8 @@ ssh -i <file>.pem ec2-user@<ip-addr>
 
 	docker compose -f docker-compose.prod.yml up -d --build
 
+	# stop and remove containers and images
+	docker compose -f docker-compose.prod.yml down --rmi all
+
+	# DANGER stop and remove containers, images and volumes
     docker compose -f docker-compose.prod.yml down --volumes --rmi all
