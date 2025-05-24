@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+mysql -uroot -p"$DB_ROOT_PWD" <<-EOSQL
+  CREATE USER IF NOT EXISTS '${DB_APP_USER}'@'%' IDENTIFIED BY '${DB_APP_PWD}';
+  GRANT SELECT, INSERT, UPDATE, DELETE ON \`${DB_NAME}\`.* TO '${DB_APP_USER}'@'%';
+EOSQL

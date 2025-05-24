@@ -11,7 +11,7 @@ services:
       MYSQL_PASSWORD: ${DB_USER_PWD}
     volumes:
       - db_data:/var/lib/mysql
-      - ../db/users.sql:/docker-entrypoint-initdb.d/01_users.sql
+      - ../db/users.sh:/docker-entrypoint-initdb.d/01_users.sh
       - ../db/schema.sql:/docker-entrypoint-initdb.d/02_schema.sql
       - ../db/seed.sql:/docker-entrypoint-initdb.d/03_seed.sql
     restart: always
