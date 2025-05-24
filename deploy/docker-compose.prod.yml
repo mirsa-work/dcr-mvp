@@ -11,8 +11,9 @@ services:
       MYSQL_PASSWORD: ${DB_USER_PWD}
     volumes:
       - db_data:/var/lib/mysql
-      - ../db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ../db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      - ../db/users.sql:/docker-entrypoint-initdb.d/01_users.sql
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/02_schema.sql
+      - ../db/seed.sql:/docker-entrypoint-initdb.d/03_seed.sql
     restart: always
     healthcheck:
       test: [ "CMD-SHELL", "mysqladmin ping -p${DB_ROOT} -h localhost" ]
