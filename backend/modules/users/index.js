@@ -6,6 +6,7 @@ const BaseModule = require('../BaseModule');
 const { asyncHandler } = require('../../utils/core');
 const authMiddleware = require('../../middleware/auth');
 const roleGuard = require('../../middleware/roleGuard');
+const rateLimiter = require('../../middleware/rateLimiter');
 
 // Import controllers
 const authController = require('./controllers/authController');
@@ -33,6 +34,7 @@ class UsersModule extends BaseModule {
         // Auth routes (public)
         this.post(
             `${basePath}/login`,
+            [rateLimiter()],
             asyncHandler(this.controllers.auth.login)
         );
 
