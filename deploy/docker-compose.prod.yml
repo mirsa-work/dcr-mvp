@@ -18,6 +18,8 @@ services:
       test: [ "CMD-SHELL", "mysqladmin ping -p${DB_ROOT} -h localhost" ]
       interval: 10s
       retries: 5
+    ports:
+      - "3306:3306"
 
   api:
     build:
