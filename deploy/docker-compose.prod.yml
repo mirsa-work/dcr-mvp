@@ -5,10 +5,10 @@ services:
     image: mysql:8.3
     container_name: dcr_db
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PWD}
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASS}
+      MYSQL_PASSWORD: ${DB_USER_PWD}
     volumes:
       - db_data:/var/lib/mysql
       - ../db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
@@ -29,8 +29,8 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV}
       DB_HOST: ${DB_HOST}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      DB_USER: ${DB_APP_USER}
+      DB_PASS: ${DB_APP_PWD}
       DB_NAME: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
     expose:
